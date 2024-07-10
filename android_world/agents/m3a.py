@@ -35,7 +35,9 @@ PROMPT_PREFIX = (
     ' At each step, you will be given the current screenshot (including the'
     ' original screenshot and the same screenshot with bounding'
     ' boxes and numeric indexes added to some UI elements) and a history of'
-    ' what you have done (in text). Based on these pieces of information and'
+    ' what you have done (in text).'
+    ' Also, the function of each element in the screen shot will also be provided.'#my addition
+    ' Based on these pieces of information and'
     ' the goal, you must choose to perform one of the'
     ' action in the following list (action description followed by the JSON'
     ' format) by outputing the action in the correct JSON format.\n'
@@ -159,6 +161,7 @@ ACTION_SELECTION_PROMPT_TEMPLATE = (
     ' interact with it, can try to scroll the screen to reveal it first),'
     ' the numeric indexes are'
     ' consistent with the ones in the labeled screenshot:\n{ui_elements}\n'
+    ' and the function of each UI element: \n{ui_function}\n'
     + GUIDANCE
     + '{additional_guidelines}'
     + '\nNow output an action from the above list in the correct JSON format,'
@@ -198,6 +201,20 @@ SUMMARY_PROMPT_TEMPLATE = (
     ' between different apps.\n\n'
     'Summary of this step: '
 )
+
+OBSERVER_PROMPT = (
+  'Imagine that you are a user who has an android phone and you can use all kinds of apps skillfullly.'
+  ' Now you are given the current screenshot (including the original screenshot and the same screenshot with bounding boxes and numeric indexes added to some UI elements),'
+  ' Your task is introducing the function of each UI element, as if someone was asking you to help with using an app in your phone.'
+  ' You should detail an element\'s purpose, list all the possible result for each operation of an UI element.'
+  ' Outputing all the (function:xxx,UI element:related UI element\'s index) pair in the correct JSON format.'
+  # 'Here is the screenshot:\n{screenshot}\n'
+  # 'Here is the labeled screenshot:\n{labeled_screenshot}\n'
+  'Now your task begin:'
+)
+
+
+
 
 
 def _generate_ui_element_description(
@@ -270,6 +287,7 @@ def _action_selection_prompt(
     goal: str,
     history: list[str],
     ui_elements: str,
+    ui_function: str,
     additional_guidelines: list[str] | None = None,
 ) -> str:
   """Generate the prompt for the action selection.
@@ -298,6 +316,7 @@ def _action_selection_prompt(
       goal=goal,
       history=history,
       ui_elements=ui_elements if ui_elements else 'Not available',
+      ui_function=ui_function,
       additional_guidelines=extra_guidelines,
   )
 
@@ -402,6 +421,25 @@ class M3A(base_agent.EnvironmentInteractingAgent):
         )
     step_data['before_screenshot_with_som'] = before_screenshot.copy()
 
+
+    observation_output="None"
+    # if len(self.history)!=0:
+    #   observation_prompt = OBSERVER_PROMPT
+    #   # .format(
+    #   #   screenshot=before_screenshot,
+    #   #   labeled_screenshot=before_ui_elements_list
+    #   # )
+    #   observation_output, raw_response = self.llm.predict_mm(
+    #       observation_prompt,
+    #       [
+    #           step_data['raw_screenshot'],
+    #           before_screenshot,
+    #       ],
+    #   )
+      # print(observation_prompt)
+      # print(observation_output)
+
+
     action_prompt = _action_selection_prompt(
         goal,
         [
@@ -409,9 +447,11 @@ class M3A(base_agent.EnvironmentInteractingAgent):
             for i, step_info in enumerate(self.history)
         ],
         before_ui_elements_list,
+        observation_output,
         self.additional_guidelines,
     )
     step_data['action_prompt'] = action_prompt
+    # print(action_prompt)
     action_output, raw_response = self.llm.predict_mm(
         action_prompt,
         [

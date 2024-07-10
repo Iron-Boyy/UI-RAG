@@ -25,6 +25,7 @@ from google.generativeai.types import generation_types
 import numpy as np
 from PIL import Image
 import requests
+from .call_gpt import call_openai_completion_api
 
 
 ERROR_CALLING_LLM = 'Error calling LLM'
@@ -156,9 +157,9 @@ class Gpt4Wrapper(LlmWrapper, MultimodalLlmWrapper):
       max_retry: int = 3,
       temperature: float = 0.0,
   ):
-    if 'OPENAI_API_KEY' not in os.environ:
-      raise RuntimeError('OpenAI API key not set.')
-    self.openai_api_key = os.environ['OPENAI_API_KEY']
+    # if 'OPENAI_API_KEY' not in os.environ:
+    #   raise RuntimeError('OpenAI API key not set.')
+    self.openai_api_key = 'fk221315-UIp73CUkRiNI7dzlBS9OEdxrTjkgNsaX'
     if max_retry <= 0:
       max_retry = 3
       print('Max_retry must be positive. Reset it to 3')
@@ -195,6 +196,11 @@ class Gpt4Wrapper(LlmWrapper, MultimodalLlmWrapper):
         }],
         'max_tokens': 1000,
     }
+    kwargs = {
+      'temperature': self.temperature,
+      'max_tokens': 1000,
+
+    }
 
     # Gpt-4v supports multiple images, just need to insert them in the content
     # list.
@@ -205,18 +211,25 @@ class Gpt4Wrapper(LlmWrapper, MultimodalLlmWrapper):
               'url': f'data:image/jpeg;base64,{self.encode_image(image)}'
           },
       })
+    messages = payload['messages']
 
     counter = self.max_retry
     wait_seconds = self.RETRY_WAITING_SECONDS
     while counter > 0:
       try:
-        response = requests.post(
-            'https://api.openai.com/v1/chat/completions',
-            headers=headers,
-            json=payload,
-        )
-        if response.ok and 'choices' in response.json():
-          return response.json()['choices'][0]['message']['content'], response
+        response = call_openai_completion_api(messages, self.model, **kwargs)
+        # response = response[0]['content'].content
+        # print(1)
+        # print(response)
+        # print(2)
+
+        # response = requests.post(
+        #     'https://oa.ai01.org/v1/chat/completions',
+        #     headers=headers,
+        #     json=payload,
+        # )
+        # if response.ok and 'choices' in response.json():
+        return response[0]['content'].content, response
         print(
             'Error calling OpenAI API with error message: '
             + response.json()['error']['message']
