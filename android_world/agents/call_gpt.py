@@ -45,7 +45,7 @@ if USE_AZURE:
             # https://agent-us-w.openai.azure.com/openai/deployments/gpt-4o/chat/completions?api-version=2024-02-15-preview
         }
         region_to_api_key = {
-            "us-w": "d055404a6d0f48028397b3c27db5b096",
+            "us-w": "c0a247839a2e40809c2c8724432c3a91",
             "in-s": "ac5342dba8bf451e903ba938b51fb13f",
             "se-c": "11dd2fc8bec5423f856671503705e6aa",
             "no-e": "34a52444d4914db2b2dc117bd0b64bc5",

@@ -1,10 +1,10 @@
-import time
+import subprocess
+def get_current_app_package():
+    adb_command = "adb shell dumpsys window windows | findstr mCurrentFocus"
+    result = subprocess.run(adb_command, capture_output=True, text=True, shell=True)
+    print(result)
+    current_app = result.stdout.split()[-1].split('/')[0]
+    return current_app
 
-timestamp = 1697695200
-
-#转换成localtime
-time_local = time.localtime(timestamp)
-#转换成新的时间格式(2016-05-05 20:28:54)
-dt = time.strftime("%Y-%m-%d %H:%M:%S",time_local)
-
-print(dt)
+current_app = get_current_app_package()
+print(current_app)

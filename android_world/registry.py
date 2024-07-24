@@ -40,6 +40,7 @@ from android_world.task_evals.single import sms
 from android_world.task_evals.single import system
 from android_world.task_evals.single import vlc
 from android_world.task_evals.single.calendar import calendar
+from android_world.task_evals.single import markorandcalender
 
 
 def get_information_retrieval_task_path() -> None:
@@ -153,6 +154,11 @@ class TaskRegistry:
       markor.MarkorMoveNote,
       markor.MarkorTranscribeReceipt,
       markor.MarkorTranscribeVideo,
+      markor.MarkorOpen,
+      markor.MarkorMoveNoteandCreateFolder,
+      markor.MarkorCreateFolderthenCreateNote,
+      markorandcalender.MarkorCreateFolderandSimpleCalendarAddOneEvent,
+      markorandcalender.MarkorCreateFolderwithCalender,
       # Markor composite tasks.
       markor_sms.MarkorCreateNoteAndSms,
       # OsmAnd.

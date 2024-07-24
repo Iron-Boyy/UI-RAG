@@ -159,7 +159,10 @@ class Gpt4Wrapper(LlmWrapper, MultimodalLlmWrapper):
   ):
     # if 'OPENAI_API_KEY' not in os.environ:
     #   raise RuntimeError('OpenAI API key not set.')
-    self.openai_api_key = 'fk221315-UIp73CUkRiNI7dzlBS9OEdxrTjkgNsaX'
+    if model_name == "gpt-4o":
+      self.openai_api_key = 'fk221315-UIp73CUkRiNI7dzlBS9OEdxrTjkgNsaX'
+    else:
+      self.openai_api_key = 'sk-proj-WSZv54uFkCrggse3i7f2T3BlbkFJt9c5RpHFvh2wGjEhOFI7'
     if max_retry <= 0:
       max_retry = 3
       print('Max_retry must be positive. Reset it to 3')
@@ -217,25 +220,24 @@ class Gpt4Wrapper(LlmWrapper, MultimodalLlmWrapper):
     wait_seconds = self.RETRY_WAITING_SECONDS
     while counter > 0:
       try:
-        response = call_openai_completion_api(messages, self.model, **kwargs)
-        # response = response[0]['content'].content
-        # print(1)
-        # print(response)
-        # print(2)
-
-        # response = requests.post(
-        #     'https://oa.ai01.org/v1/chat/completions',
-        #     headers=headers,
-        #     json=payload,
-        # )
-        # if response.ok and 'choices' in response.json():
-        return response[0]['content'].content, response
-        print(
-            'Error calling OpenAI API with error message: '
-            + response.json()['error']['message']
-        )
-        time.sleep(wait_seconds)
-        wait_seconds *= 2
+        if self.model == "gpt-4o":
+          response = call_openai_completion_api(messages, self.model, **kwargs)
+          return response[0]['content'].content, response
+        else:
+          response = requests.post(
+              'https://api.openai.com/v1/chat/completions',
+              headers=headers,
+              json=payload,
+          )
+          # print(response.json()['choices'][0]['message']['content'])
+          if response.ok and 'choices' in response.json():
+            return response.json()['choices'][0]['message']['content'], response
+          print(
+              'Error calling OpenAI API with error message: '
+              + response.json()['error']['message']
+          )
+          time.sleep(wait_seconds)
+          wait_seconds *= 2
       except Exception as e:  # pylint: disable=broad-exception-caught
         # Want to catch all exceptions happened during LLM calls.
         time.sleep(wait_seconds)

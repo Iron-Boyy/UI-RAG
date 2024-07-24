@@ -167,8 +167,12 @@ def _get_agent(
   # GPT.
   elif _AGENT_NAME.value == 't3a_gpt4':
     agent = t3a.T3A(env, infer.Gpt4Wrapper('gpt-4-turbo-2024-04-09'))
-  elif _AGENT_NAME.value == 'm3a_gpt4v':
+  elif _AGENT_NAME.value == 'm3a_gpt4o':
     agent = m3a.M3A(env, infer.Gpt4Wrapper('gpt-4o'))
+  elif _AGENT_NAME.value == 'm3a_gpt4omini':
+    agent = m3a.M3A(env, infer.Gpt4Wrapper('gpt-4o-mini-2024-07-18'))
+  elif _AGENT_NAME.value == 'm3a_gpt4v':
+    agent = m3a.M3A(env, infer.Gpt4Wrapper('gpt-4-turbo-2024-04-09'))
   # SeeAct.
   elif _AGENT_NAME.value == 'seeact':
     agent = seeact.SeeAct(env)
@@ -199,6 +203,9 @@ def _main() -> None:
 
   n_task_combinations = _N_TASK_COMBINATIONS.value
   task_registry = registry.TaskRegistry()
+  print(111)
+  print(task_registry)
+  print(111)
   suite = suite_utils.create_suite(
       task_registry.get_registry(family=_SUITE_FAMILY.value),
       n_task_combinations=n_task_combinations,

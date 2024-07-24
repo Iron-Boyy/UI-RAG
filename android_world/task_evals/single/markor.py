@@ -33,6 +33,8 @@ from android_world.utils import datetime_utils
 from android_world.utils import file_utils
 from android_world.utils import fuzzy_match_lib
 
+import subprocess
+
 
 @dataclasses.dataclass(frozen=True)
 class _Note:
@@ -66,6 +68,205 @@ class Markor(task_eval.TaskEval):
     super().tear_down(env)
     file_utils.clear_directory(device_constants.MARKOR_DATA, env.base_env)
 
+
+class MarkorOpen(Markor):
+  """Task for opening Markor."""
+
+  complexity = 1
+  schema = {}
+  template = (
+      "Open Markor App"
+  )
+
+  def is_successful(self, env: interface.AsyncEnv) -> float:
+    super().is_successful(env)
+    adb_command = "adb shell dumpsys window windows"
+    result = subprocess.run(adb_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    # print(result)
+    result = result.stdout.split('    ')
+    for i in range(len(result)):
+        if len(result[i])>len("mActivityRecord") and result[i][:len("mActivityRecord")] == "mActivityRecord":
+            print(result[i])
+            if result[i].split(" ")[2] == "net.gsantner.markor/.activity.MainActivity}":
+              return 1
+            else:
+              return 0
+
+    return self.move_file_task.is_successful(env)
+  
+  @classmethod
+  def generate_random_params(cls) -> dict[str, str | int]:
+    return {}
+
+class MarkorMoveNoteandCreateFolder(Markor):
+  """Task for checking that a file has been moved in Markor and checking that a new folder in Markor has been created with a specific name."""
+
+  complexity = 2
+  schema = {
+      "type": "object",
+      "properties": {
+          "file_name": {"type": "string"},
+          "source_folder": {"type": "string"},
+          "destination_folder": {"type": "string"},
+          "folder_name": {"type": "string"},
+      },
+      "required": ["file_name", "source_folder", "destination_folder", "folder_name"],
+  }
+  template = (
+      "In Markor, move the note {file_name} from {source_folder} to"
+      " {destination_folder}. Also, create a new folder named {folder_name} in Markor."
+  )
+
+  def __init__(self, params: dict[str, Any]):
+    """Initialize the task."""
+    super().__init__(params)
+    self.move_file_task = file_validators.MoveFile(
+        params, device_constants.MARKOR_DATA
+    )
+
+  def initialize_task(self, env: interface.AsyncEnv) -> None:
+    super().initialize_task(env)
+    self.move_file_task.initialize_task(env)
+    user_data_generation.generate_noise_files(
+        "file",
+        device_constants.MARKOR_DATA,
+        env.base_env,
+        _NOTE_TITLES,
+    )
+
+  def is_successful(self, env: interface.AsyncEnv) -> float:
+    super().is_successful(env)
+    folder_name = self.params["folder_name"]
+
+    exists = file_utils.check_file_or_folder_exists(
+        folder_name, device_constants.MARKOR_DATA, env.base_env
+    )
+
+    if not exists:
+      logging.info("%s not found", folder_name)
+      return 0.0
+
+    return 1.0 and self.move_file_task.is_successful(env)
+    # return self.move_file_task.is_successful(env)
+
+  @classmethod
+  def generate_random_params(cls) -> dict[str, Any]:
+    random_folder_name = "folder_" + str(
+        datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    )
+    subfolders = [
+        "BookNotes",
+        "CodeSnippets",
+        "DailyNotes",
+        "FitnessPlans",
+        "MeetingMinutes",
+        "PersonalJournal",
+        "RecipeCollections",
+        "StudyGuides",
+        "TravelItineraries",
+        "WorkProjects",
+    ]
+    source_folder = random.choice(subfolders)
+    destination_folder = random.choice(
+        [folder for folder in subfolders if folder != source_folder]
+    )
+    file_name = _generate_random_note().name
+    return {
+        "file_name": file_name,
+        "source_folder": source_folder,
+        "destination_folder": destination_folder,
+        "noise_candidates": _NOTE_TITLES,
+        "folder_name": random_folder_name,
+    }
+
+  def tear_down(self, env: interface.AsyncEnv) -> None:
+    super().tear_down(env)
+    self.move_file_task.tear_down(env)
+
+class MarkorCreateFolderthenCreateNote(Markor):
+  """Task for checking that a new folder in Markor has been created with a specific name and then a new note also been created in it."""
+
+  complexity = 3
+  schema = {
+      "type": "object",
+      "properties": {
+          "folder_name": {"type": "string"},
+          "file_name": {"type": "string"},
+          "text": {"type": "string"},
+      },
+      "required": ["folder_name", "file_name", "text"],
+  }
+  template = (
+    "Create a new folder in Markor named {folder_name} and then create a new note named {file_name} in this folder with the following text:"
+    " {text}"
+  )
+
+  def __init__(self, params: dict[str, Any]):
+    """See base class."""
+    super().__init__(params)
+
+    self.create_file_task = file_validators.CreateFile(
+        params, device_constants.MARKOR_DATA
+    )
+
+  def initialize_task(self, env: interface.AsyncEnv) -> None:
+    super().initialize_task(env)
+    user_data_generation.generate_noise_files(
+        "file",
+        device_constants.MARKOR_DATA,
+        env.base_env,
+        _NOTE_TITLES,
+    )
+    self.create_file_task.initialize_task(env)
+
+  def is_successful(self, env: interface.AsyncEnv) -> float:
+    super().is_successful(env)
+    file_name = self.params["file_name"]
+    folder_name = self.params["folder_name"]
+
+    exists = file_utils.check_file_or_folder_exists(
+        folder_name, device_constants.MARKOR_DATA, env.base_env
+    )
+    if not exists:
+      logging.info("%s not found", folder_name)
+      return 0.0
+    else:
+      exists = file_utils.check_file_or_folder_exists(
+          file_name, os.path.join(self.create_file_task.data_directory, folder_name), env.base_env
+      )
+
+      if not exists:
+        logging.info("%s not found", file_name)
+        return 0.0
+
+      # Check the contents of the new file
+      res = adb_utils.issue_generic_request(
+          [
+              "shell",
+              "cat",
+              os.path.join(os.path.join(self.create_file_task.data_directory, folder_name), file_name),
+          ],
+          env.base_env,
+      )
+      file_contents = res.generic.output.decode().strip()
+      match = fuzzy_match_lib.fuzzy_match(file_contents, self.params["text"])
+      if not match:
+        logging.info("%s does not match %s", file_contents, self.params["text"])
+        return 0.0
+
+      return 1.0
+
+  @classmethod
+  def generate_random_params(cls) -> dict[str, str | int]:
+    random_folder_name = "folder_" + str(
+        datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    )
+    note = _generate_random_note()
+    return {"folder_name": random_folder_name, "file_name": note.name, "text": note.content}
+
+  def tear_down(self, env: interface.AsyncEnv) -> None:
+    super().tear_down(env)
+    self.create_file_task.tear_down(env)
 
 class MarkorMoveNote(Markor):
   """Task for checking that a file has been moved in Markor."""
