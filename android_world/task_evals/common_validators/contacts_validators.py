@@ -60,3 +60,86 @@ class AddContact(task_eval.TaskEval):
         'name': user_data_generation.generate_random_name(),
         'number': user_data_generation.generate_random_number(),
     }
+
+class DeleteContact(task_eval.TaskEval):
+  """Validator for checking that a contact has been added."""
+
+  app_names = ()
+  complexity = 1
+  schema = {
+      'type': 'object',
+      'properties': {
+          'name': {'type': 'string'},
+      },
+      'required': ['name'],
+  }
+  template = ''
+
+  def initialize_task(self, env: interface.AsyncEnv) -> None:
+    super().initialize_task(env)
+    # contacts_utils.clear_contacts(env.base_env)
+    # self.env.reset(go_home=go_home)
+
+  def _has_contact(self, contacts: list[contacts_utils.Contact]) -> bool:
+    return (
+        contacts_utils.Contact(
+            self.params['name'],
+            contacts_utils.clean_phone_number(self.params['number']),
+        )
+        in contacts
+    )
+
+  def is_successful(self, env: interface.AsyncEnv) -> float:
+    # contact_found = self._has_contact(
+    #     contacts_utils.list_contacts(env.base_env)
+    # )
+    return super().is_successful(env)# if contact_found else 0.0
+
+  @classmethod
+  def generate_random_params(cls) -> dict[str, str | int]:
+    return {
+        'name': user_data_generation.generate_random_name(),
+    }
+
+class ChangeContact(task_eval.TaskEval):
+  """Validator for checking that a contact has been added."""
+
+  app_names = ()
+  complexity = 1
+  schema = {
+      'type': 'object',
+      'properties': {
+          'name': {'type': 'string'},
+          'number1': {'type': 'string'},
+          'number2': {'type': 'string'},
+      },
+      'required': ['name', 'number1','number2'],
+  }
+  template = ''
+
+  def initialize_task(self, env: interface.AsyncEnv) -> None:
+      super().initialize_task(env)
+      contacts_utils.clear_contacts(env.base_env)
+
+  def _has_contact(self, contacts: list[contacts_utils.Contact]) -> bool:
+      return (
+              contacts_utils.Contact(
+                  self.params['name'],
+                  contacts_utils.clean_phone_number(self.params['number2']),
+              )
+              in contacts
+      )
+
+  def is_successful(self, env: interface.AsyncEnv) -> float:
+      contact_found = self._has_contact(
+          contacts_utils.list_contacts(env.base_env)
+      )
+      return super().is_successful(env) if contact_found else 0.0
+
+  @classmethod
+  def generate_random_params(cls) -> dict[str, str | int]:
+      return {
+          'name': user_data_generation.generate_random_name(),
+          'number1': user_data_generation.generate_random_number(),
+          'number2': user_data_generation.generate_random_number(),
+      }

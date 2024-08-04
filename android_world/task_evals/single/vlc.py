@@ -239,6 +239,100 @@ class VlcCreateTwoPlaylists(task_eval.TaskEval):
     }
 
 
+class VlcCreateThreePlaylists(task_eval.TaskEval):
+  """Task to create two playlists in VLC."""
+
+  app_names = ['vlc']
+  complexity = 4
+  schema = {
+      'type': 'object',
+      'properties': {
+          'playlist_name1': {'type': 'string'},
+          'files1': {
+              'type': 'array',
+              'items': {'type': 'string'},
+          },
+          'playlist_name2': {'type': 'string'},
+          'files2': {
+              'type': 'array',
+              'items': {'type': 'string'},
+          },
+          'playlist_name3': {'type': 'string'},
+          'files3': {
+              'type': 'array',
+              'items': {'type': 'string'},
+          },
+      },
+      'required': ['playlist_name1', 'files1', 'playlist_name2', 'files2','playlist_name3', 'files3'],
+  }
+  template = ''  # Directly use goal.
+
+  def __init__(self, params: dict[str, Any]):
+    super().__init__(params)
+    self.task1_params = {
+        'playlist_name': params['playlist_name1'],
+        'files': params['files1'],
+        'noise_files': params['noise_files1'],
+    }
+    self.task2_params = {
+        'playlist_name': params['playlist_name2'],
+        'files': params['files2'],
+        'noise_files': params['noise_files2'],
+    }
+    self.task3_params = {
+        'playlist_name': params['playlist_name3'],
+        'files': params['files3'],
+        'noise_files': params['noise_files3'],
+    }
+    self.task1 = VlcCreatePlaylist(self.task1_params)
+    self.task2 = VlcCreatePlaylist(self.task2_params)
+    self.task3 = VlcCreatePlaylist(self.task3_params)
+  @property
+  def goal(self) -> str:
+    goal1 = (
+        f'Create a playlist titled "{self.params["playlist_name1"]}" with the'
+        ' following files in VLC (located in Internal Memory/VLCVideos), in'
+        f' order: {", ".join(self.params["files1"])}'
+    )
+    goal2 = (
+        f'create a playlist titled "{self.params["playlist_name2"]}" with the'
+        f' following files in VLC, in order: {", ".join(self.params["files2"])}'
+    )
+    goal3 = (
+        f'create a playlist titled "{self.params["playlist_name3"]}" with the'
+        f' following files in VLC, in order: {", ".join(self.params["files3"])}'
+    )
+    return f'{goal1}. And then, {goal2}.And then ,{goal3} '
+
+  def initialize_task(self, env: interface.AsyncEnv):
+    super().initialize_task(env)
+    self.task1.initialize_task(env)
+    self.task2.setup_files(env)  # Don't want to clear db.
+    self.task3.setup_files(env)  # Don't want to clear db.
+  def tear_down(self, env: interface.AsyncEnv):
+    super().tear_down(env)
+    self.task1.tear_down(env)
+
+  def is_successful(self, env: interface.AsyncEnv) -> float:
+    super().is_successful(env)
+    return (self.task1.is_successful(env) + self.task2.is_successful(env) + self.task3.is_successful(env)) / 2
+
+  @classmethod
+  def generate_random_params(cls) -> dict[str, Any]:
+    playlist1_params = VlcCreatePlaylist.generate_random_params()
+    playlist2_params = VlcCreatePlaylist.generate_random_params()
+    playlist3_params = VlcCreatePlaylist.generate_random_params()
+    return {
+        'playlist_name1': playlist1_params['playlist_name'],
+        'files1': playlist1_params['files'],
+        'noise_files1': playlist1_params['noise_files'],
+        'playlist_name2': playlist2_params['playlist_name'],
+        'files2': playlist2_params['files'],
+        'noise_files2': playlist2_params['noise_files'],
+        'playlist_name3': playlist3_params['playlist_name'],
+        'files3': playlist3_params['files'],
+        'noise_files3': playlist3_params['noise_files'],
+    }
 #### Synthetic data ############################################################
 
 

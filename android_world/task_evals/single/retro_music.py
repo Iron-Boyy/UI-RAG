@@ -17,6 +17,7 @@
 import dataclasses
 import os
 import random
+import subprocess
 from typing import Any
 from android_world.env import adb_utils
 from android_world.env import device_constants
@@ -188,7 +189,6 @@ class RetroCreatePlaylist(task_eval.TaskEval):
         'noise_files': noise_files,
     }
 
-
 class RetroPlayingQueue(RetroCreatePlaylist):
   """Task to create a playing queue in Retro Music."""
 
@@ -230,7 +230,33 @@ class RetroSavePlaylist(RetroCreatePlaylist):
 
     return (super().is_successful(env) + int(playlist_exists)) / 2.0
 
+class RetroOpen(task_eval.TaskEval):
+    app_names = ['retro music']
+    complexity = 1
+    schema = {}
+    template = (
+        "Open retro music App"
+    )
 
+    def is_successful(self, env: interface.AsyncEnv) -> float:
+        super().is_successful(env)
+        adb_command = "adb shell dumpsys window windows"
+        result = subprocess.run(adb_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        # print(result)
+        result = result.stdout.split('    ')
+
+        for i in range(len(result)):
+            if len(result[i]) > len("mActivityRecord") and result[i][:len("mActivityRecord")] == "mActivityRecord":
+                print(result[i])
+                part = result[i].split(" ")[2].split('/')
+                if part[0] == "com.google.android.retromusic":
+                    return 1
+                else:
+                    return 0
+
+    @classmethod
+    def generate_random_params(cls) -> dict[str, str | int]:
+        return {}
 def _generate_list_with_sum(n, m):
   """Generates a list of m integers with sum n."""
   random_numbers = [random.randint(0, n) for _ in range(m - 1)]

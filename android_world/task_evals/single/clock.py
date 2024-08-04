@@ -15,6 +15,7 @@
 """Tasks for the clock app."""
 
 import random
+import subprocess
 from absl import logging
 from android_world.env import adb_utils
 from android_world.env import interface
@@ -105,7 +106,33 @@ class _ClockEval(task_eval.TaskEval):
 
   app_names = ("clock",)
 
+class ClockOpen(_ClockEval):
+    """Task for opening Clock."""
 
+    complexity = 1
+    schema = {}
+    template = (
+        "Open Clock App"
+    )
+
+    def is_successful(self, env: interface.AsyncEnv) -> float:
+        super().is_successful(env)
+        adb_command = "adb shell dumpsys window windows"
+        result = subprocess.run(adb_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        # print(result)
+        result = result.stdout.split('    ')
+
+        for i in range(len(result)):
+            if len(result[i]) > len("mActivityRecord") and result[i][:len("mActivityRecord")] == "mActivityRecord":
+                print(result[i])
+                part=result[i].split(" ")[2].split('/')
+                if part[0]== "com.google.android.deskclock":
+                    return 1
+                else:
+                    return 0
+    @classmethod
+    def generate_random_params(cls) -> dict[str, str | int]:
+        return {}
 class ClockTimerEntry(_ClockEval):
   """Task for checking if timer is set (but not started)."""
 
@@ -156,8 +183,49 @@ class ClockTimerEntry(_ClockEval):
     }
 
     return params
+class ClockTimerEntryAndExit(_ClockEval):
+  """Task for checking if timer is set (but not started)."""
 
+  complexity = 1
+  schema = {
+      "type": "object",
+      "properties": {
+          "hours": {"type": "integer"},
+          "minutes": {"type": "integer"},
+          "seconds": {"type": "integer"},
+      },
+      "required": ["hours", "minutes", "seconds"],
+  }
+  template = (
+      "Create a timer with {hours} hours, {minutes} minutes, and {seconds}"
+      " seconds. Do not start the timer. Exit the timer."
+  )
 
+  def is_successful(
+      self,
+      env: interface.AsyncEnv,
+  ) -> float:
+    super().is_successful(env)
+    ui_elements = env.get_state().ui_elements
+    current_activity = adb_utils.get_current_activity(env.base_env)[0]
+    if "DeskClock" not in current_activity and "DeskTimer" not in current_activity:
+        return 1
+    else:
+        return 0
+
+  @classmethod
+  def generate_random_params(cls) -> dict[str, int]:
+    hours = random.randint(0, 23)
+    minutes = random.randint(0, 59)
+    seconds = random.randint(0, 59)
+
+    params = {
+        "hours": hours,
+        "minutes": minutes,
+        "seconds": seconds,
+    }
+
+    return params
 class ClockStopWatchPausedVerify(_ClockEval):
   """Task for checking if stop watch is paused.
 
@@ -195,7 +263,6 @@ class ClockStopWatchPausedVerify(_ClockEval):
   def generate_random_params(cls) -> dict[str, str]:
     return {}
 
-
 class ClockStopWatchRunning(_ClockEval):
   """Task for checking if stop watch is paused.
 
@@ -231,3 +298,139 @@ class ClockStopWatchRunning(_ClockEval):
   @classmethod
   def generate_random_params(cls) -> dict[str, str]:
     return {}
+class ClockStopWatchRunningAndPaused(_ClockEval):
+  """Task for checking if stop watch is paused.
+
+  Precondition: The stopwatch is already paused at 00:00:00.
+
+  There is no programmatic way to control the stopwatch. However, the app can be
+  forced cleared, effectively resetting and pausing the watch.
+  """
+
+  complexity = 1
+  schema = {
+      "type": "object",
+      "properties": {},
+  }
+  template = "Run the stopwatch and then Pause it."
+
+  def is_successful(
+          self,
+          env: interface.AsyncEnv,
+  ) -> float:
+      super().is_successful(env)
+      ui_elements = env.get_state().ui_elements
+      current_activity = adb_utils.get_current_activity(env.base_env)[0]
+      return (
+          1.0
+          if _is_stopwatch_paused(
+              ui_elements=ui_elements,
+              current_activity=current_activity,
+          )
+          else 0.0
+      )
+
+  @classmethod
+  def generate_random_params(cls) -> dict[str, str]:
+    return {}
+class ClockWatchRunningAndReset(_ClockEval):
+  """Task for checking if stop watch is paused.
+
+  Precondition: The stopwatch is already paused at 00:00:00.
+
+  There is no programmatic way to control the stopwatch. However, the app can be
+  forced cleared, effectively resetting and pausing the watch.
+  """
+
+  complexity = 1
+  schema = {
+      "type": "object",
+      "properties": {},
+  }
+  template = "Run the stopwatch and reset the stopwatch."
+
+  def is_successful(
+      self,
+      env: interface.AsyncEnv,
+  ) -> float:
+      super().is_successful(env)
+      ui_elements = env.get_state().ui_elements
+      current_activity = adb_utils.get_current_activity(env.base_env)[0]
+      return (
+          1.0
+          if _is_stopwatch_paused(
+              ui_elements=ui_elements,
+              current_activity=current_activity,
+          )
+          else 0.0
+      )
+
+  @classmethod
+  def generate_random_params(cls) -> dict[str, str]:
+    return {}
+
+class ClockWatchExit(_ClockEval):
+  """Task for checking if stop watch is paused.
+
+  Precondition: The stopwatch is already paused at 00:00:00.
+
+  There is no programmatic way to control the stopwatch. However, the app can be
+  forced cleared, effectively resetting and pausing the watch.
+  """
+
+  complexity = 1
+  schema = {
+      "type": "object",
+      "properties": {},
+  }
+  template = "open the stopwatch and Exit the stopwatch."
+
+  def is_successful(
+      self,
+      env: interface.AsyncEnv,
+  ) -> float:
+      super().is_successful(env)
+      ui_elements = env.get_state().ui_elements
+      current_activity = adb_utils.get_current_activity(env.base_env)[0]
+
+      if "DeskClock" not in current_activity:
+          return 1
+      else:
+          return 0
+
+  @classmethod
+  def generate_random_params(cls) -> dict[str, str]:
+    return {}
+
+class ClockWatchRunningAndResetAndExit(_ClockEval):
+  """Task for checking if stop watch is paused.
+
+  Precondition: The stopwatch is already paused at 00:00:00.
+
+  There is no programmatic way to control the stopwatch. However, the app can be
+  forced cleared, effectively resetting and pausing the watch.
+  """
+
+  complexity = 1
+  schema = {
+      "type": "object",
+      "properties": {},
+  }
+  template = "Run the stopwatch and reset the stopwatch, and then exit the stopwatch."
+
+  def is_successful(
+      self,
+      env: interface.AsyncEnv,
+  ) -> float:
+      super().is_successful(env)
+      ui_elements = env.get_state().ui_elements
+      current_activity = adb_utils.get_current_activity(env.base_env)[0]
+      if "DeskClock" not in current_activity:
+          return 1
+      else:
+          return 0
+
+  @classmethod
+  def generate_random_params(cls) -> dict[str, str]:
+    return {}
+

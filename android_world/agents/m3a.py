@@ -498,7 +498,6 @@ class M3A(base_agent.EnvironmentInteractingAgent):
           ' correct JSON format!'
       )
       self.history.append(step_data)
-
       return base_agent.AgentInteractionResult(
           False,
           step_data,

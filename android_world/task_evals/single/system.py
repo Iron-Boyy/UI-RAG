@@ -134,7 +134,7 @@ class _SystemWifiToggle(task_eval.TaskEval):
         ['shell', 'settings', 'get', 'global', 'wifi_on'], env.base_env
     )
     wifi_status = res.generic.output.decode().strip()
-
+    logging.info("wifi_status: %s", wifi_status)
     if self.params['on_or_off'] == 'on':
       # WiFi is on when the value is either 1 or 2. If Airplane mode is on, and
       # WiFi is on, it will be "2".
