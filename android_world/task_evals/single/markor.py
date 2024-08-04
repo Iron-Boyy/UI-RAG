@@ -92,7 +92,6 @@ class MarkorOpen(Markor):
             else:
               return 0
 
-    return self.move_file_task.is_successful(env)
   
   @classmethod
   def generate_random_params(cls) -> dict[str, str | int]:
@@ -323,7 +322,6 @@ class MarkorMoveNote(Markor):
     super().tear_down(env)
     self.move_file_task.tear_down(env)
 
-
 class MarkorCreateFolder(Markor):
   """Task for checking that a new folder in Markor has been created with a specific name."""
 
@@ -366,7 +364,6 @@ class MarkorCreateFolder(Markor):
         datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     )
     return {"folder_name": random_folder_name}
-
 
 class MarkorEditNote(Markor):
   """Task for editing an existing note in Markor."""
@@ -483,7 +480,6 @@ class MarkorEditNote(Markor):
 
     return params
 
-
 class MarkorDeleteNote(Markor):
   """Task for checking that a note in Markor has been deleted."""
 
@@ -514,8 +510,6 @@ class MarkorDeleteNote(Markor):
   def tear_down(self, env: interface.AsyncEnv) -> None:
     super().tear_down(env)
     self.delete_file_task.tear_down(env)
-
-
 class MarkorDeleteNewestNote(Markor):
   """Task for deleting the newest note in Markor."""
 
@@ -573,7 +567,6 @@ class MarkorDeleteNewestNote(Markor):
   def generate_random_params(cls) -> dict[str, str | int]:
     return {}
 
-
 class MarkorDeleteAllNotes(Markor):
   """Task for deleting all notes in Markor."""
 
@@ -613,7 +606,6 @@ class MarkorDeleteAllNotes(Markor):
   def generate_random_params(cls) -> dict[str, str | int]:
     return {}
 
-
 class MarkorCreateNote(Markor):
   """Task for checking that a new note in Markor has been created with a specific name and text."""
 
@@ -649,7 +641,6 @@ class MarkorCreateNote(Markor):
   def tear_down(self, env: interface.AsyncEnv) -> None:
     super().tear_down(env)
     self.create_file_task.tear_down(env)
-
 
 class MarkorCreateNoteFromClipboard(Markor):
   """Task for creating a note using text in clipboard in Markor."""
@@ -704,7 +695,6 @@ class MarkorCreateNoteFromClipboard(Markor):
   def tear_down(self, env: interface.AsyncEnv) -> None:
     super().tear_down(env)
     self.create_file_task.tear_down(env)
-
 
 class MarkorMergeNotes(Markor):
   """Task for merging three existing notes into a new one."""
@@ -830,7 +820,6 @@ class MarkorMergeNotes(Markor):
         "file3_content": user_data_generation.generate_random_string(20),
     }
 
-
 class MarkorChangeNoteContent(Markor):
   """Task for changing an existing note's content and renaming it."""
 
@@ -900,7 +889,6 @@ class MarkorChangeNoteContent(Markor):
         "new_name": new,
         "updated_content": user_data_generation.generate_random_string(20),
     }
-
 
 class MarkorAddNoteHeader(Markor):
   """Task for adding a header to an existing note and renaming it."""
@@ -975,7 +963,6 @@ class MarkorAddNoteHeader(Markor):
         "header": user_data_generation.generate_random_string(20),
     }
 
-
 class MarkorTranscribeReceipt(task_eval.TaskEval):
   """Task for creating a markdown file from a receipt image using Simple Gallery and Markor.
 
@@ -1030,7 +1017,6 @@ class MarkorTranscribeReceipt(task_eval.TaskEval):
         "file_name": "receipt.md",
         "text": text,
     }
-
 
 class MarkorTranscribeVideo(Markor):
   """Task for transcribing a video using Markor."""
@@ -1097,6 +1083,354 @@ class MarkorTranscribeVideo(Markor):
             vlc.generate_file_name() for _ in range(random.randint(5, 20))
         ],
     }
+class MarkorMoveAndEditNote(Markor):
+  """Task for editing an existing note in Markor."""
+
+  complexity = 4
+  schema = {
+      "type": "object",
+      "properties": {
+          "file_name": {"type": "string"},
+          "header": {"type": "string"},
+          "footer": {"type": "string"},
+          "replace_text": {"type": "string"},
+          "edit_type": {
+              "type": "string",
+              "enum": ["header", "footer", "replace"],
+
+          },
+          "source_folder": {"type": "string"},
+          "destination_folder": {"type": "string"},
+      },
+      "required": ["file_name", "edit_type","source_folder", "destination_folder"],
+  }
+
+  @property
+  def template(self) -> str:
+    templates = {
+        "header": (
+            "In markor, move the note {file_name} from {source_folder} to"
+      " {destination_folder}.then edit it. Add to the top of the note {header}"
+        ),
+        "footer": (
+            "In markor, move the note {file_name} from {source_folder} to"
+      " {destination_folder}.then edit it.Add to the bottom of the note {footer}"
+        ),
+        "replace": (
+            "In markor, move the note {file_name} from {source_folder} to"
+      " {destination_folder}.then edit it.Replace the text with {replace_text}"
+        ),
+    }
+
+    if "edit_type" not in self.params and "edit_type" not in templates:
+      return templates.get(
+          self.params.get("edit_type"),
+          "Invalid edit_type for {file_name} in Markor.",
+      )
+    return templates[self.params.get("edit_type")]
+  def __init__(self, params: dict[str, Any]):
+    """Initialize the task."""
+    super().__init__(params)
+    self.move_file_task = file_validators.MoveFile(
+        params, device_constants.MARKOR_DATA
+    )
+  def initialize_task(self, env: interface.AsyncEnv) -> None:
+    super().initialize_task(env)
+    self.move_file_task.initialize_task(env)
+    user_data_generation.generate_noise_files(
+        self.params["file_name"],
+        device_constants.MARKOR_DATA,
+        env.base_env,
+        _NOTE_TITLES,
+    )
+    self.original_content = file_utils.create_file(
+        self.params["file_name"],
+        device_constants.MARKOR_DATA,
+        env.base_env,
+        content=generate_random_sentence(),
+    )
+
+  def is_successful(self, env: interface.AsyncEnv) -> float:
+    super().is_successful(env)
+    res = adb_utils.issue_generic_request(
+        [
+            "shell",
+            "cat",
+            os.path.join(
+                device_constants.MARKOR_DATA, self.params["file_name"]
+            ),
+        ],
+        env.base_env,
+    )
+    file_contents = res.generic.output.decode().strip()
+    logging.info("Retrieved file contents: %s", file_contents)
+
+    if self.params["edit_type"] == "header":
+      expected_content = self.params["header"] + "\n" + self.original_content
+    elif self.params["edit_type"] == "footer":
+      expected_content = self.original_content + "\n" + self.params["footer"]
+    else:
+      expected_content = self.params["replace_text"]
+
+    is_match = fuzzy_match_lib.fuzzy_match(file_contents, expected_content)
+    logging.info(
+        "Is content match: %s.\nFound: %s\nExpected: %s",
+        is_match,
+        file_contents,
+        expected_content,
+    )
+    is_move=self.move_file_task.is_successful(env)
+
+    return 1.0 if is_match and is_move  else 0.0
+
+  @classmethod
+  def generate_random_params(cls) -> dict[str, str | int]:
+    extensions = [".md", ".txt"]
+
+    random_file_name = (
+        "note_"
+        + user_data_generation.generate_random_string(5)
+        + random.choice(extensions)
+    )
+
+    edit_type = random.choice(["header", "footer", "replace"])
+    subfolders = [
+        "BookNotes",
+        "CodeSnippets",
+        "DailyNotes",
+        "FitnessPlans",
+        "MeetingMinutes",
+        "PersonalJournal",
+        "RecipeCollections",
+        "StudyGuides",
+        "TravelItineraries",
+        "WorkProjects",
+    ]
+    source_folder = random.choice(subfolders)
+    destination_folder = random.choice(
+        [folder for folder in subfolders if folder != source_folder]
+    )
+    params = {
+        "file_name": random_file_name,
+        "edit_type": edit_type,
+        "source_folder": source_folder,
+        "destination_folder": destination_folder,
+        "noise_candidates": _NOTE_TITLES,
+    }
+
+    if edit_type == "header":
+      params["header"] = generate_random_sentence()
+    elif edit_type == "footer":
+      params["footer"] = generate_random_sentence()
+    elif edit_type == "replace":
+      params["replace_text"] = "\n".join(
+          [generate_random_sentence() for _ in range(3)]
+      )
+
+    return params
+class MarkorMoveAndDeleteNote(Markor):
+  """Task for checking that a file has been moved in Markor."""
+
+  complexity = 2
+  schema = file_validators.MoveFile.schema
+  template = (
+      "In Markor, move the note {file_name} from {source_folder} to"
+      " {destination_folder}. And then delete it"
+  )
+
+  def __init__(self, params: dict[str, Any]):
+    """Initialize the task."""
+    super().__init__(params)
+    self.move_file_task = file_validators.MoveFile(
+        params, device_constants.MARKOR_DATA
+    )
+    self.delete_file_task = file_validators.DeleteFile(
+        params, device_constants.MARKOR_DATA
+    )
+
+  def initialize_task(self, env: interface.AsyncEnv) -> None:
+    super().initialize_task(env)
+    self.delete_file_task.initialize_task(env)
+    self.move_file_task.initialize_task(env)
+
+  def is_successful(self, env: interface.AsyncEnv) -> float:
+    super().is_successful(env)
+    return self.delete_file_task.is_successful(env)
+
+  @classmethod
+  def generate_random_params(cls) -> dict[str, Any]:
+    subfolders = [
+        "BookNotes",
+        "CodeSnippets",
+        "DailyNotes",
+        "FitnessPlans",
+        "MeetingMinutes",
+        "PersonalJournal",
+        "RecipeCollections",
+        "StudyGuides",
+        "TravelItineraries",
+        "WorkProjects",
+    ]
+    source_folder = random.choice(subfolders)
+    destination_folder = random.choice(
+        [folder for folder in subfolders if folder != source_folder]
+    )
+    file_name = _generate_random_note().name
+    return {
+        "file_name": file_name,
+        "source_folder": source_folder,
+        "destination_folder": destination_folder,
+        "noise_candidates": _NOTE_TITLES,
+    }
+
+  def tear_down(self, env: interface.AsyncEnv) -> None:
+    super().tear_down(env)
+    self.move_file_task.tear_down(env)
+class MarkorCreateFolderThenMoveNote(Markor):
+    complexity = 3
+    schema = file_validators.MoveFile.schema
+    template = (
+        "Create a new folder in Markor named {destination_folder} and then move the note {file_name} "
+        "from {source_folder} to it"
+
+    )
+    def __init__(self, params: dict[str, Any]):
+        """See base class."""
+        super().__init__(params)
+        self.move_file_task = file_validators.MoveFile(
+            params, device_constants.MARKOR_DATA
+        )
+
+    def initialize_task(self, env: interface.AsyncEnv) -> None:
+        super().initialize_task(env)
+        self.move_file_task.initialize_task(env)
+
+    def is_successful(self, env: interface.AsyncEnv) -> float:
+        super().is_successful(env)
+        folder_name = self.params["destination_folder"]
+        exists = file_utils.check_file_or_folder_exists(
+            folder_name, device_constants.MARKOR_DATA, env.base_env
+        )
+        create_folder = 0
+        if exists: create_folder = 1
+        return (self.move_file_task.is_successful(env) + create_folder) / 2.0
+
+    @classmethod
+    def generate_random_params(cls) -> dict[str, str | int]:
+        random_folder_name = "folder_" + str(
+        datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
+        subfolders = [
+            "BookNotes",
+            "CodeSnippets",
+            "DailyNotes",
+            "FitnessPlans",
+            "MeetingMinutes",
+            "PersonalJournal",
+            "RecipeCollections",
+            "StudyGuides",
+            "TravelItineraries",
+            "WorkProjects",
+        ]
+        source_folder = random.choice(subfolders)
+        destination_folder = random_folder_name
+        file_name = _generate_random_note().name
+        return {
+            "file_name": file_name,
+            "source_folder": source_folder,
+            "destination_folder": destination_folder,
+            "noise_candidates": _NOTE_TITLES,}
+
+    def tear_down(self, env: interface.AsyncEnv) -> None:
+        super().tear_down(env)
+        self.move_file_task.tear_down(env)
+class MarkorCreateFolderThenCreateNoteFromClipboard(Markor):
+    complexity = 3
+    schema = {
+        "type": "object",
+        "properties": {
+            "folder_name": {"type": "string"},
+            "file_name": {"type": "string"},
+        },
+        "required": ["folder_name", "file_name"],
+    }
+    template = (
+        "Create a new folder in Markor named {folder_name} and then create a new note named {file_name} in this folder "
+        " then Perform a paste operation in the note and save the note."
+    )
+    def __init__(self, params: dict[str, Any]):
+        """See base class."""
+        super().__init__(params)
+        if "file_content" not in params or not params["file_content"]:
+            params["file_content"] = user_data_generation.generate_random_string(20)
+        self.create_file_task = file_validators.CreateFile(
+            {"file_name": params["file_name"], "text": params["file_content"]},
+            device_constants.MARKOR_DATA,
+        )
+    def initialize_task(self, env: interface.AsyncEnv) -> None:
+        super().initialize_task(env)
+        user_data_generation.generate_noise_files(
+            "file",
+            device_constants.MARKOR_DATA,
+            env.base_env,
+            _NOTE_TITLES,
+        )
+        adb_utils.set_clipboard_contents(self.params["file_content"], env.base_env)
+        if (
+                adb_utils.get_clipboard_contents(env.base_env)
+                != self.params["file_content"]
+        ):
+            raise RuntimeError(
+                "Something went wrong, clipboard not set up correctly."
+            )
+        self.create_file_task.initialize_task(env)
+
+    def is_successful(self, env: interface.AsyncEnv) -> float:
+        super().is_successful(env)
+        file_name = self.params["file_name"]
+        folder_name = self.params["folder_name"]
+
+        exists = file_utils.check_file_or_folder_exists(
+            folder_name, device_constants.MARKOR_DATA, env.base_env
+        )
+        if not exists:
+            logging.info("%s not found", folder_name)
+            return 0.0
+        else:
+            exists = file_utils.check_file_or_folder_exists(
+                file_name, os.path.join(self.create_file_task.data_directory, folder_name), env.base_env
+            )
+
+            if not exists:
+                logging.info("%s not found", file_name)
+                return 0.0
+
+            # Check the contents of the new file
+            res = adb_utils.issue_generic_request(
+                [
+                    "shell",
+                    "cat",
+                    os.path.join(os.path.join(self.create_file_task.data_directory, folder_name), file_name),
+                ],
+                env.base_env,
+            )
+            file_contents = res.generic.output.decode().strip()
+            match = fuzzy_match_lib.fuzzy_match(file_contents, self.params["text"])
+            if not match:
+                logging.info("%s does not match %s", file_contents, self.params["text"])
+                return 0.0
+
+            return 1.0
+
+    @classmethod
+    def generate_random_params(cls) -> dict[str, str | int]:
+        random_folder_name = "folder_" + str(
+            datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        )
+        return {"folder_name": random_folder_name,  "file_name": _generate_random_note().name,
+        "file_content": user_data_generation.generate_random_string(10),}
+    def tear_down(self, env: interface.AsyncEnv) -> None:
+        super().tear_down(env)
+        self.create_file_task.tear_down(env)
 
 _NOTE_TITLES = [
     "grocery_list_weekly.md",

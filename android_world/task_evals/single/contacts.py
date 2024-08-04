@@ -16,6 +16,7 @@
 
 import random
 import re
+import subprocess
 from absl import logging
 from android_world.env import interface
 from android_world.env import representation_utils
@@ -23,13 +24,52 @@ from android_world.task_evals import task_eval
 from android_world.task_evals.common_validators import contacts_validators
 from android_world.utils import fuzzy_match_lib
 
+class ContactsOpen(task_eval.TaskEval):
+    """Task for opening Contacts."""
+    app_names = ("contacts",)
+    complexity = 1
+    schema = {}
+    template = (
+        "Open Contacts App"
+    )
+
+    def is_successful(self, env: interface.AsyncEnv) -> float:
+        super().is_successful(env)
+        adb_command = "adb shell dumpsys window windows"
+        result = subprocess.run(adb_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        # print(result)
+        result = result.stdout.split('    ')
+        for i in range(len(result)):
+            if len(result[i]) > len("mActivityRecord") and result[i][:len("mActivityRecord")] == "mActivityRecord":
+                print(result[i])
+                part=result[i].split(" ")[2].split('/')
+                if part[0]== "com.google.android.contacts":
+                    return 1
+                else:
+                    return 0
+
+
+
+    @classmethod
+    def generate_random_params(cls) -> dict[str, str | int]:
+        return {}
 
 class ContactsAddContact(contacts_validators.AddContact):
   """Task for adding a new contact."""
 
   app_names = ("contacts",)
   template = "Create a new contact for {name}. Their number is {number}."
+class ContactsDeleteContact(contacts_validators.DeleteContact):
+    """Task for adding a new contact."""
 
+    app_names = ("contacts",)
+    template = "Delete the first name that appears in your address book"
+
+class ContactsAddAndChangeContact(contacts_validators.ChangeContact):
+    """Task for adding a new contact."""
+
+    app_names = ("contacts",)
+    template = "Create a new contact for {name}. Their number is {number1}. Change . Add the new number {number2} for the person."
 
 def _contact_info_is_entered(
     first: str,

@@ -17,6 +17,7 @@
 import abc
 import dataclasses
 import random
+import subprocess
 from typing import Any, Optional
 from android_world.env import device_constants
 from android_world.env import interface
@@ -67,7 +68,34 @@ class _Expense(task_eval.TaskEval, abc.ABC):
       apps.ExpenseApp.setup(env.base_env)
     super().initialize_task(env)
 
+class ExpenseOpen(_Expense):
+    """Task for opening Expense."""
+    complexity = 1
+    schema = {}
+    template = (
+        "Open Expense App"
+    )
 
+    def is_successful(self, env: interface.AsyncEnv) -> float:
+        super().is_successful(env)
+        adb_command = "adb shell dumpsys window windows"
+        result = subprocess.run(adb_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        # print(result)
+        result = result.stdout.split('    ')
+        for i in range(len(result)):
+            if len(result[i]) > len("mActivityRecord") and result[i][:len("mActivityRecord")] == "mActivityRecord":
+                print(result[i])
+                part = result[i].split(" ")[2].split('/')
+                if part[0] == "om.android.expense":
+                    return 1
+                else:
+                    return 0
+
+
+
+    @classmethod
+    def generate_random_params(cls) -> dict[str, str | int]:
+        return {}
 class _ExpenseDeleteMultiple(_Expense, sqlite_validators.DeleteMultipleRows):
   """Task to delete multiple expenses in an expense tracking app."""
 
@@ -138,8 +166,13 @@ class ExpenseDeleteMultiple2(_ExpenseDeleteMultiple):
   """Harder task to delete multiple expenses in an expense tracking app."""
 
   n_rows = 3
-  n_rows_noise = 50
+  n_rows_noise = 40
 
+class ExpenseDeleteMultiple3(_ExpenseDeleteMultiple):
+  """Harder task to delete multiple expenses in an expense tracking app."""
+
+  n_rows = 3
+  n_rows_noise = 50
 
 class _ExpenseDeleteDuplicates(_Expense, sqlite_validators.DeleteDuplicateRows):
   """Deduplicate expenses in the expense tracking app with some noise."""
@@ -195,7 +228,7 @@ class ExpenseDeleteDuplicates2(_ExpenseDeleteDuplicates):
   """Harder task to deduplicate expenses in the expense tracking app."""
 
   n_rows = 1
-  n_rows_noise = 40
+  n_rows_noise = 6
 
   @classmethod
   def generate_random_params(cls) -> dict[str, Any]:
@@ -224,6 +257,269 @@ class ExpenseDeleteDuplicates2(_ExpenseDeleteDuplicates):
         sqlite_validators.NOISE_ROW_OBJECTS: noise + target_varations,
     }
 
+class ExpenseDeleteDuplicates3(_ExpenseDeleteDuplicates):
+  """Harder task to deduplicate expenses in the expense tracking app."""
+
+  n_rows = 1
+  n_rows_noise = 7
+
+  @classmethod
+  def generate_random_params(cls) -> dict[str, Any]:
+    """Generate random parameters for a remove duplicate expense task."""
+    assert cls.n_rows == 1
+    noise = sqlite_schema_utils.get_random_items(
+        cls.n_rows_noise + cls.n_rows - 3,
+        _generate_expense,
+        replacement=False,
+    )
+    target = noise.pop()
+    perturbations = random.sample(range(50, 1000), 3)
+    target_varations = []
+    for perturbation in perturbations:
+      target_varations.append(
+          dataclasses.replace(
+              target,
+              amount=target.amount + perturbation,
+              created_date=_get_random_timestamp() * 1000,
+              modified_date=_get_random_timestamp() * 1000,
+          )
+      )
+
+    return {
+        sqlite_validators.ROW_OBJECTS: [target, target],
+        sqlite_validators.NOISE_ROW_OBJECTS: noise + target_varations,
+    }
+
+class ExpenseDeleteDuplicates4(_ExpenseDeleteDuplicates):
+  """Harder task to deduplicate expenses in the expense tracking app."""
+
+  n_rows = 1
+  n_rows_noise = 8
+
+  @classmethod
+  def generate_random_params(cls) -> dict[str, Any]:
+    """Generate random parameters for a remove duplicate expense task."""
+    assert cls.n_rows == 1
+    noise = sqlite_schema_utils.get_random_items(
+        cls.n_rows_noise + cls.n_rows - 3,
+        _generate_expense,
+        replacement=False,
+    )
+    target = noise.pop()
+    perturbations = random.sample(range(50, 1000), 3)
+    target_varations = []
+    for perturbation in perturbations:
+      target_varations.append(
+          dataclasses.replace(
+              target,
+              amount=target.amount + perturbation,
+              created_date=_get_random_timestamp() * 1000,
+              modified_date=_get_random_timestamp() * 1000,
+          )
+      )
+
+    return {
+        sqlite_validators.ROW_OBJECTS: [target, target],
+        sqlite_validators.NOISE_ROW_OBJECTS: noise + target_varations,
+    }
+
+class ExpenseDeleteDuplicates5(_ExpenseDeleteDuplicates):
+  """Harder task to deduplicate expenses in the expense tracking app."""
+
+  n_rows = 1
+  n_rows_noise = 9
+
+  @classmethod
+  def generate_random_params(cls) -> dict[str, Any]:
+    """Generate random parameters for a remove duplicate expense task."""
+    assert cls.n_rows == 1
+    noise = sqlite_schema_utils.get_random_items(
+        cls.n_rows_noise + cls.n_rows - 3,
+        _generate_expense,
+        replacement=False,
+    )
+    target = noise.pop()
+    perturbations = random.sample(range(50, 1000), 3)
+    target_varations = []
+    for perturbation in perturbations:
+      target_varations.append(
+          dataclasses.replace(
+              target,
+              amount=target.amount + perturbation,
+              created_date=_get_random_timestamp() * 1000,
+              modified_date=_get_random_timestamp() * 1000,
+          )
+      )
+
+    return {
+        sqlite_validators.ROW_OBJECTS: [target, target],
+        sqlite_validators.NOISE_ROW_OBJECTS: noise + target_varations,
+    }
+
+class ExpenseDeleteDuplicates6(_ExpenseDeleteDuplicates):
+  """Harder task to deduplicate expenses in the expense tracking app."""
+
+  n_rows = 1
+  n_rows_noise = 10
+
+  @classmethod
+  def generate_random_params(cls) -> dict[str, Any]:
+    """Generate random parameters for a remove duplicate expense task."""
+    assert cls.n_rows == 1
+    noise = sqlite_schema_utils.get_random_items(
+        cls.n_rows_noise + cls.n_rows - 3,
+        _generate_expense,
+        replacement=False,
+    )
+    target = noise.pop()
+    perturbations = random.sample(range(50, 1000), 3)
+    target_varations = []
+    for perturbation in perturbations:
+      target_varations.append(
+          dataclasses.replace(
+              target,
+              amount=target.amount + perturbation,
+              created_date=_get_random_timestamp() * 1000,
+              modified_date=_get_random_timestamp() * 1000,
+          )
+      )
+
+    return {
+        sqlite_validators.ROW_OBJECTS: [target, target],
+        sqlite_validators.NOISE_ROW_OBJECTS: noise + target_varations,
+    }
+
+class ExpenseDeleteDuplicates7(_ExpenseDeleteDuplicates):
+  """Harder task to deduplicate expenses in the expense tracking app."""
+
+  n_rows = 1
+  n_rows_noise = 11
+
+  @classmethod
+  def generate_random_params(cls) -> dict[str, Any]:
+    """Generate random parameters for a remove duplicate expense task."""
+    assert cls.n_rows == 1
+    noise = sqlite_schema_utils.get_random_items(
+        cls.n_rows_noise + cls.n_rows - 3,
+        _generate_expense,
+        replacement=False,
+    )
+    target = noise.pop()
+    perturbations = random.sample(range(50, 1000), 3)
+    target_varations = []
+    for perturbation in perturbations:
+      target_varations.append(
+          dataclasses.replace(
+              target,
+              amount=target.amount + perturbation,
+              created_date=_get_random_timestamp() * 1000,
+              modified_date=_get_random_timestamp() * 1000,
+          )
+      )
+
+    return {
+        sqlite_validators.ROW_OBJECTS: [target, target],
+        sqlite_validators.NOISE_ROW_OBJECTS: noise + target_varations,
+    }
+
+class ExpenseDeleteDuplicates8(_ExpenseDeleteDuplicates):
+  """Harder task to deduplicate expenses in the expense tracking app."""
+
+  n_rows = 1
+  n_rows_noise = 12
+
+  @classmethod
+  def generate_random_params(cls) -> dict[str, Any]:
+    """Generate random parameters for a remove duplicate expense task."""
+    assert cls.n_rows == 1
+    noise = sqlite_schema_utils.get_random_items(
+        cls.n_rows_noise + cls.n_rows - 3,
+        _generate_expense,
+        replacement=False,
+    )
+    target = noise.pop()
+    perturbations = random.sample(range(50, 1000), 3)
+    target_varations = []
+    for perturbation in perturbations:
+      target_varations.append(
+          dataclasses.replace(
+              target,
+              amount=target.amount + perturbation,
+              created_date=_get_random_timestamp() * 1000,
+              modified_date=_get_random_timestamp() * 1000,
+          )
+      )
+
+    return {
+        sqlite_validators.ROW_OBJECTS: [target, target],
+        sqlite_validators.NOISE_ROW_OBJECTS: noise + target_varations,
+    }
+
+class ExpenseDeleteDuplicates9(_ExpenseDeleteDuplicates):
+  """Harder task to deduplicate expenses in the expense tracking app."""
+
+  n_rows = 1
+  n_rows_noise = 13
+
+  @classmethod
+  def generate_random_params(cls) -> dict[str, Any]:
+    """Generate random parameters for a remove duplicate expense task."""
+    assert cls.n_rows == 1
+    noise = sqlite_schema_utils.get_random_items(
+        cls.n_rows_noise + cls.n_rows - 3,
+        _generate_expense,
+        replacement=False,
+    )
+    target = noise.pop()
+    perturbations = random.sample(range(50, 1000), 3)
+    target_varations = []
+    for perturbation in perturbations:
+      target_varations.append(
+          dataclasses.replace(
+              target,
+              amount=target.amount + perturbation,
+              created_date=_get_random_timestamp() * 1000,
+              modified_date=_get_random_timestamp() * 1000,
+          )
+      )
+
+    return {
+        sqlite_validators.ROW_OBJECTS: [target, target],
+        sqlite_validators.NOISE_ROW_OBJECTS: noise + target_varations,
+    }
+
+class ExpenseDeleteDuplicates10(_ExpenseDeleteDuplicates):
+  """Harder task to deduplicate expenses in the expense tracking app."""
+
+  n_rows = 1
+  n_rows_noise = 14
+
+  @classmethod
+  def generate_random_params(cls) -> dict[str, Any]:
+    """Generate random parameters for a remove duplicate expense task."""
+    assert cls.n_rows == 1
+    noise = sqlite_schema_utils.get_random_items(
+        cls.n_rows_noise + cls.n_rows - 3,
+        _generate_expense,
+        replacement=False,
+    )
+    target = noise.pop()
+    perturbations = random.sample(range(50, 1000), 3)
+    target_varations = []
+    for perturbation in perturbations:
+      target_varations.append(
+          dataclasses.replace(
+              target,
+              amount=target.amount + perturbation,
+              created_date=_get_random_timestamp() * 1000,
+              modified_date=_get_random_timestamp() * 1000,
+          )
+      )
+
+    return {
+        sqlite_validators.ROW_OBJECTS: [target, target],
+        sqlite_validators.NOISE_ROW_OBJECTS: noise + target_varations,
+    }
 
 def _get_expense_rows_as_text(
     rows: list[sqlite_schema_utils.Expense],
@@ -320,7 +616,685 @@ class ExpenseAddMultiple(_ExpenseAddMultiple):
   n_rows = 3
   n_rows_noise = 10
 
+class ExpenseAddSingleFromMarkor(_ExpenseAddMultiple):
+  """Task to add multiple expenses from Markor into the Expense Tracking app."""
 
+  complexity = 3
+  n_rows = 1
+  n_rows_noise = 50
+
+  @property
+  def goal(self) -> str:
+    return (
+        'Go through the transactions in my_expenses.txt in Markor. Log the '
+        f'reimbursable transactions in the {_APP_NAME}.'
+    )
+
+  def initialize_task(self, env: interface.AsyncEnv):
+    super().initialize_task(env)
+    targets = [
+        dataclasses.replace(row, note=row.note + '. ' + 'Reimbursable.')
+        for row in self.params[sqlite_validators.ROW_OBJECTS]
+    ]
+    rows = targets + self.params[sqlite_validators.NOISE_ROW_OBJECTS]
+    random.shuffle(rows)
+    file_utils.clear_directory(device_constants.MARKOR_DATA, env.base_env)
+    user_data_generation.write_to_markor(
+        _get_expense_rows_as_text(rows, 'csv'),
+        'my_expenses.txt',
+        env,
+    )
+
+  def tear_down(self, env: interface.AsyncEnv):
+    super().tear_down(env)
+    file_utils.clear_directory(device_constants.MARKOR_DATA, env.base_env)
+
+class ExpenseAddSingleFromMarkor2(_ExpenseAddMultiple):
+  """Task to add multiple expenses from Markor into the Expense Tracking app."""
+
+  complexity = 3
+  n_rows = 1
+  n_rows_noise = 52
+
+  @property
+  def goal(self) -> str:
+    return (
+        'Go through the transactions in my_expenses.txt in Markor. Log the '
+        f'reimbursable transactions in the {_APP_NAME}.'
+    )
+
+  def initialize_task(self, env: interface.AsyncEnv):
+    super().initialize_task(env)
+    targets = [
+        dataclasses.replace(row, note=row.note + '. ' + 'Reimbursable.')
+        for row in self.params[sqlite_validators.ROW_OBJECTS]
+    ]
+    rows = targets + self.params[sqlite_validators.NOISE_ROW_OBJECTS]
+    random.shuffle(rows)
+    file_utils.clear_directory(device_constants.MARKOR_DATA, env.base_env)
+    user_data_generation.write_to_markor(
+        _get_expense_rows_as_text(rows, 'csv'),
+        'my_expenses.txt',
+        env,
+    )
+
+  def tear_down(self, env: interface.AsyncEnv):
+    super().tear_down(env)
+    file_utils.clear_directory(device_constants.MARKOR_DATA, env.base_env)
+
+class ExpenseAddSingleFromMarkor3(_ExpenseAddMultiple):
+  """Task to add multiple expenses from Markor into the Expense Tracking app."""
+
+  complexity = 3
+  n_rows = 1
+  n_rows_noise = 54
+
+  @property
+  def goal(self) -> str:
+    return (
+        'Go through the transactions in my_expenses.txt in Markor. Log the '
+        f'reimbursable transactions in the {_APP_NAME}.'
+    )
+
+  def initialize_task(self, env: interface.AsyncEnv):
+    super().initialize_task(env)
+    targets = [
+        dataclasses.replace(row, note=row.note + '. ' + 'Reimbursable.')
+        for row in self.params[sqlite_validators.ROW_OBJECTS]
+    ]
+    rows = targets + self.params[sqlite_validators.NOISE_ROW_OBJECTS]
+    random.shuffle(rows)
+    file_utils.clear_directory(device_constants.MARKOR_DATA, env.base_env)
+    user_data_generation.write_to_markor(
+        _get_expense_rows_as_text(rows, 'csv'),
+        'my_expenses.txt',
+        env,
+    )
+
+  def tear_down(self, env: interface.AsyncEnv):
+    super().tear_down(env)
+    file_utils.clear_directory(device_constants.MARKOR_DATA, env.base_env)
+
+class ExpenseAddSingleFromMarkor4(_ExpenseAddMultiple):
+  """Task to add multiple expenses from Markor into the Expense Tracking app."""
+
+  complexity = 3
+  n_rows = 1
+  n_rows_noise = 56
+
+  @property
+  def goal(self) -> str:
+    return (
+        'Go through the transactions in my_expenses.txt in Markor. Log the '
+        f'reimbursable transactions in the {_APP_NAME}.'
+    )
+
+  def initialize_task(self, env: interface.AsyncEnv):
+    super().initialize_task(env)
+    targets = [
+        dataclasses.replace(row, note=row.note + '. ' + 'Reimbursable.')
+        for row in self.params[sqlite_validators.ROW_OBJECTS]
+    ]
+    rows = targets + self.params[sqlite_validators.NOISE_ROW_OBJECTS]
+    random.shuffle(rows)
+    file_utils.clear_directory(device_constants.MARKOR_DATA, env.base_env)
+    user_data_generation.write_to_markor(
+        _get_expense_rows_as_text(rows, 'csv'),
+        'my_expenses.txt',
+        env,
+    )
+
+  def tear_down(self, env: interface.AsyncEnv):
+    super().tear_down(env)
+    file_utils.clear_directory(device_constants.MARKOR_DATA, env.base_env)
+
+class ExpenseAddSingleFromMarkor5(_ExpenseAddMultiple):
+  """Task to add multiple expenses from Markor into the Expense Tracking app."""
+
+  complexity = 3
+  n_rows = 1
+  n_rows_noise = 58
+
+  @property
+  def goal(self) -> str:
+    return (
+        'Go through the transactions in my_expenses.txt in Markor. Log the '
+        f'reimbursable transactions in the {_APP_NAME}.'
+    )
+
+  def initialize_task(self, env: interface.AsyncEnv):
+    super().initialize_task(env)
+    targets = [
+        dataclasses.replace(row, note=row.note + '. ' + 'Reimbursable.')
+        for row in self.params[sqlite_validators.ROW_OBJECTS]
+    ]
+    rows = targets + self.params[sqlite_validators.NOISE_ROW_OBJECTS]
+    random.shuffle(rows)
+    file_utils.clear_directory(device_constants.MARKOR_DATA, env.base_env)
+    user_data_generation.write_to_markor(
+        _get_expense_rows_as_text(rows, 'csv'),
+        'my_expenses.txt',
+        env,
+    )
+
+  def tear_down(self, env: interface.AsyncEnv):
+    super().tear_down(env)
+    file_utils.clear_directory(device_constants.MARKOR_DATA, env.base_env)
+
+class ExpenseAddSingleFromMarkor6(_ExpenseAddMultiple):
+  """Task to add multiple expenses from Markor into the Expense Tracking app."""
+
+  complexity = 3
+  n_rows = 1
+  n_rows_noise = 60
+
+  @property
+  def goal(self) -> str:
+    return (
+        'Go through the transactions in my_expenses.txt in Markor. Log the '
+        f'reimbursable transactions in the {_APP_NAME}.'
+    )
+
+  def initialize_task(self, env: interface.AsyncEnv):
+    super().initialize_task(env)
+    targets = [
+        dataclasses.replace(row, note=row.note + '. ' + 'Reimbursable.')
+        for row in self.params[sqlite_validators.ROW_OBJECTS]
+    ]
+    rows = targets + self.params[sqlite_validators.NOISE_ROW_OBJECTS]
+    random.shuffle(rows)
+    file_utils.clear_directory(device_constants.MARKOR_DATA, env.base_env)
+    user_data_generation.write_to_markor(
+        _get_expense_rows_as_text(rows, 'csv'),
+        'my_expenses.txt',
+        env,
+    )
+
+  def tear_down(self, env: interface.AsyncEnv):
+    super().tear_down(env)
+    file_utils.clear_directory(device_constants.MARKOR_DATA, env.base_env)
+
+class ExpenseAddSingleFromMarkor7(_ExpenseAddMultiple):
+  """Task to add multiple expenses from Markor into the Expense Tracking app."""
+
+  complexity = 3
+  n_rows = 1
+  n_rows_noise = 62
+
+  @property
+  def goal(self) -> str:
+    return (
+        'Go through the transactions in my_expenses.txt in Markor. Log the '
+        f'reimbursable transactions in the {_APP_NAME}.'
+    )
+
+  def initialize_task(self, env: interface.AsyncEnv):
+    super().initialize_task(env)
+    targets = [
+        dataclasses.replace(row, note=row.note + '. ' + 'Reimbursable.')
+        for row in self.params[sqlite_validators.ROW_OBJECTS]
+    ]
+    rows = targets + self.params[sqlite_validators.NOISE_ROW_OBJECTS]
+    random.shuffle(rows)
+    file_utils.clear_directory(device_constants.MARKOR_DATA, env.base_env)
+    user_data_generation.write_to_markor(
+        _get_expense_rows_as_text(rows, 'csv'),
+        'my_expenses.txt',
+        env,
+    )
+
+  def tear_down(self, env: interface.AsyncEnv):
+    super().tear_down(env)
+    file_utils.clear_directory(device_constants.MARKOR_DATA, env.base_env)
+
+class ExpenseAddSingleFromMarkor8(_ExpenseAddMultiple):
+  """Task to add multiple expenses from Markor into the Expense Tracking app."""
+
+  complexity = 3
+  n_rows = 1
+  n_rows_noise = 64
+
+  @property
+  def goal(self) -> str:
+    return (
+        'Go through the transactions in my_expenses.txt in Markor. Log the '
+        f'reimbursable transactions in the {_APP_NAME}.'
+    )
+
+  def initialize_task(self, env: interface.AsyncEnv):
+    super().initialize_task(env)
+    targets = [
+        dataclasses.replace(row, note=row.note + '. ' + 'Reimbursable.')
+        for row in self.params[sqlite_validators.ROW_OBJECTS]
+    ]
+    rows = targets + self.params[sqlite_validators.NOISE_ROW_OBJECTS]
+    random.shuffle(rows)
+    file_utils.clear_directory(device_constants.MARKOR_DATA, env.base_env)
+    user_data_generation.write_to_markor(
+        _get_expense_rows_as_text(rows, 'csv'),
+        'my_expenses.txt',
+        env,
+    )
+
+  def tear_down(self, env: interface.AsyncEnv):
+    super().tear_down(env)
+    file_utils.clear_directory(device_constants.MARKOR_DATA, env.base_env)
+
+class ExpenseAddSingleFromMarkor9(_ExpenseAddMultiple):
+  """Task to add multiple expenses from Markor into the Expense Tracking app."""
+
+  complexity = 3
+  n_rows = 1
+  n_rows_noise = 66
+
+  @property
+  def goal(self) -> str:
+    return (
+        'Go through the transactions in my_expenses.txt in Markor. Log the '
+        f'reimbursable transactions in the {_APP_NAME}.'
+    )
+
+  def initialize_task(self, env: interface.AsyncEnv):
+    super().initialize_task(env)
+    targets = [
+        dataclasses.replace(row, note=row.note + '. ' + 'Reimbursable.')
+        for row in self.params[sqlite_validators.ROW_OBJECTS]
+    ]
+    rows = targets + self.params[sqlite_validators.NOISE_ROW_OBJECTS]
+    random.shuffle(rows)
+    file_utils.clear_directory(device_constants.MARKOR_DATA, env.base_env)
+    user_data_generation.write_to_markor(
+        _get_expense_rows_as_text(rows, 'csv'),
+        'my_expenses.txt',
+        env,
+    )
+
+  def tear_down(self, env: interface.AsyncEnv):
+    super().tear_down(env)
+    file_utils.clear_directory(device_constants.MARKOR_DATA, env.base_env)
+
+class ExpenseAddSingleFromMarkor10(_ExpenseAddMultiple):
+  """Task to add multiple expenses from Markor into the Expense Tracking app."""
+
+  complexity = 3
+  n_rows = 1
+  n_rows_noise = 68
+
+  @property
+  def goal(self) -> str:
+    return (
+        'Go through the transactions in my_expenses.txt in Markor. Log the '
+        f'reimbursable transactions in the {_APP_NAME}.'
+    )
+
+  def initialize_task(self, env: interface.AsyncEnv):
+    super().initialize_task(env)
+    targets = [
+        dataclasses.replace(row, note=row.note + '. ' + 'Reimbursable.')
+        for row in self.params[sqlite_validators.ROW_OBJECTS]
+    ]
+    rows = targets + self.params[sqlite_validators.NOISE_ROW_OBJECTS]
+    random.shuffle(rows)
+    file_utils.clear_directory(device_constants.MARKOR_DATA, env.base_env)
+    user_data_generation.write_to_markor(
+        _get_expense_rows_as_text(rows, 'csv'),
+        'my_expenses.txt',
+        env,
+    )
+
+  def tear_down(self, env: interface.AsyncEnv):
+    super().tear_down(env)
+    file_utils.clear_directory(device_constants.MARKOR_DATA, env.base_env)
+
+class ExpenseAddSingleFromGallery(_ExpenseAddMultiple):
+  """Task to add multiple expenses from Gallery into Expense Tracking app."""
+
+  complexity = 3
+  n_rows = 1
+  n_rows_noise = 10
+
+  app_names = (_APP_NAME, 'simple gallery pro')
+
+  @property
+  def goal(self) -> str:
+    return (
+        'Add the expenses from expenses.jpg in Simple Gallery Pro to '
+        f'{_APP_NAME}.'
+    )
+
+  def initialize_task(self, env: interface.AsyncEnv):
+    super().initialize_task(env)
+    user_data_generation.clear_device_storage(env)
+    data = _get_expense_rows_as_text(
+        self.params[sqlite_validators.ROW_OBJECTS], 'text_block', wrap_width=60
+    )
+    user_data_generation.write_to_gallery(data, 'expenses.jpg', env)
+    for i in range(10):
+      data = _get_expense_rows_as_text(
+          self.params[sqlite_validators.NOISE_ROW_OBJECTS],
+          'text_block',
+          wrap_width=60,
+      )
+      user_data_generation.write_to_gallery(data, f'old_expenses_{i}.jpg', env)
+
+  def tear_down(self, env: interface.AsyncEnv):
+    super().tear_down(env)
+    user_data_generation.clear_device_storage(env)
+
+class ExpenseAddSingleFromGallery2(_ExpenseAddMultiple):
+  """Task to add multiple expenses from Gallery into Expense Tracking app."""
+
+  complexity = 3
+  n_rows = 1
+  n_rows_noise = 12
+
+  app_names = (_APP_NAME, 'simple gallery pro')
+
+  @property
+  def goal(self) -> str:
+    return (
+        'Add the expenses from expenses.jpg in Simple Gallery Pro to '
+        f'{_APP_NAME}.'
+    )
+
+  def initialize_task(self, env: interface.AsyncEnv):
+    super().initialize_task(env)
+    user_data_generation.clear_device_storage(env)
+    data = _get_expense_rows_as_text(
+        self.params[sqlite_validators.ROW_OBJECTS], 'text_block', wrap_width=60
+    )
+    user_data_generation.write_to_gallery(data, 'expenses.jpg', env)
+    for i in range(10):
+      data = _get_expense_rows_as_text(
+          self.params[sqlite_validators.NOISE_ROW_OBJECTS],
+          'text_block',
+          wrap_width=60,
+      )
+      user_data_generation.write_to_gallery(data, f'old_expenses_{i}.jpg', env)
+
+  def tear_down(self, env: interface.AsyncEnv):
+    super().tear_down(env)
+    user_data_generation.clear_device_storage(env)
+
+class ExpenseAddSingleFromGallery3(_ExpenseAddMultiple):
+  """Task to add multiple expenses from Gallery into Expense Tracking app."""
+
+  complexity = 3
+  n_rows = 1
+  n_rows_noise =14
+
+  app_names = (_APP_NAME, 'simple gallery pro')
+
+  @property
+  def goal(self) -> str:
+    return (
+        'Add the expenses from expenses.jpg in Simple Gallery Pro to '
+        f'{_APP_NAME}.'
+    )
+
+  def initialize_task(self, env: interface.AsyncEnv):
+    super().initialize_task(env)
+    user_data_generation.clear_device_storage(env)
+    data = _get_expense_rows_as_text(
+        self.params[sqlite_validators.ROW_OBJECTS], 'text_block', wrap_width=60
+    )
+    user_data_generation.write_to_gallery(data, 'expenses.jpg', env)
+    for i in range(10):
+      data = _get_expense_rows_as_text(
+          self.params[sqlite_validators.NOISE_ROW_OBJECTS],
+          'text_block',
+          wrap_width=60,
+      )
+      user_data_generation.write_to_gallery(data, f'old_expenses_{i}.jpg', env)
+
+  def tear_down(self, env: interface.AsyncEnv):
+    super().tear_down(env)
+    user_data_generation.clear_device_storage(env)
+
+class ExpenseAddSingleFromGallery4(_ExpenseAddMultiple):
+  """Task to add multiple expenses from Gallery into Expense Tracking app."""
+
+  complexity = 3
+  n_rows = 1
+  n_rows_noise = 16
+
+  app_names = (_APP_NAME, 'simple gallery pro')
+
+  @property
+  def goal(self) -> str:
+    return (
+        'Add the expenses from expenses.jpg in Simple Gallery Pro to '
+        f'{_APP_NAME}.'
+    )
+
+  def initialize_task(self, env: interface.AsyncEnv):
+    super().initialize_task(env)
+    user_data_generation.clear_device_storage(env)
+    data = _get_expense_rows_as_text(
+        self.params[sqlite_validators.ROW_OBJECTS], 'text_block', wrap_width=60
+    )
+    user_data_generation.write_to_gallery(data, 'expenses.jpg', env)
+    for i in range(10):
+      data = _get_expense_rows_as_text(
+          self.params[sqlite_validators.NOISE_ROW_OBJECTS],
+          'text_block',
+          wrap_width=60,
+      )
+      user_data_generation.write_to_gallery(data, f'old_expenses_{i}.jpg', env)
+
+  def tear_down(self, env: interface.AsyncEnv):
+    super().tear_down(env)
+    user_data_generation.clear_device_storage(env)
+
+class ExpenseAddSingleFromGallery5(_ExpenseAddMultiple):
+  """Task to add multiple expenses from Gallery into Expense Tracking app."""
+
+  complexity = 3
+  n_rows = 1
+  n_rows_noise = 18
+
+  app_names = (_APP_NAME, 'simple gallery pro')
+
+  @property
+  def goal(self) -> str:
+    return (
+        'Add the expenses from expenses.jpg in Simple Gallery Pro to '
+        f'{_APP_NAME}.'
+    )
+
+  def initialize_task(self, env: interface.AsyncEnv):
+    super().initialize_task(env)
+    user_data_generation.clear_device_storage(env)
+    data = _get_expense_rows_as_text(
+        self.params[sqlite_validators.ROW_OBJECTS], 'text_block', wrap_width=60
+    )
+    user_data_generation.write_to_gallery(data, 'expenses.jpg', env)
+    for i in range(10):
+      data = _get_expense_rows_as_text(
+          self.params[sqlite_validators.NOISE_ROW_OBJECTS],
+          'text_block',
+          wrap_width=60,
+      )
+      user_data_generation.write_to_gallery(data, f'old_expenses_{i}.jpg', env)
+
+  def tear_down(self, env: interface.AsyncEnv):
+    super().tear_down(env)
+    user_data_generation.clear_device_storage(env)
+
+class ExpenseAddSingleFromGallery6(_ExpenseAddMultiple):
+  """Task to add multiple expenses from Gallery into Expense Tracking app."""
+
+  complexity = 3
+  n_rows = 1
+  n_rows_noise = 20
+
+  app_names = (_APP_NAME, 'simple gallery pro')
+
+  @property
+  def goal(self) -> str:
+    return (
+        'Add the expenses from expenses.jpg in Simple Gallery Pro to '
+        f'{_APP_NAME}.'
+    )
+
+  def initialize_task(self, env: interface.AsyncEnv):
+    super().initialize_task(env)
+    user_data_generation.clear_device_storage(env)
+    data = _get_expense_rows_as_text(
+        self.params[sqlite_validators.ROW_OBJECTS], 'text_block', wrap_width=60
+    )
+    user_data_generation.write_to_gallery(data, 'expenses.jpg', env)
+    for i in range(10):
+      data = _get_expense_rows_as_text(
+          self.params[sqlite_validators.NOISE_ROW_OBJECTS],
+          'text_block',
+          wrap_width=60,
+      )
+      user_data_generation.write_to_gallery(data, f'old_expenses_{i}.jpg', env)
+
+  def tear_down(self, env: interface.AsyncEnv):
+    super().tear_down(env)
+    user_data_generation.clear_device_storage(env)
+
+class ExpenseAddSingleFromGallery7(_ExpenseAddMultiple):
+  """Task to add multiple expenses from Gallery into Expense Tracking app."""
+
+  complexity = 3
+  n_rows = 1
+  n_rows_noise = 22
+
+  app_names = (_APP_NAME, 'simple gallery pro')
+
+  @property
+  def goal(self) -> str:
+    return (
+        'Add the expenses from expenses.jpg in Simple Gallery Pro to '
+        f'{_APP_NAME}.'
+    )
+
+  def initialize_task(self, env: interface.AsyncEnv):
+    super().initialize_task(env)
+    user_data_generation.clear_device_storage(env)
+    data = _get_expense_rows_as_text(
+        self.params[sqlite_validators.ROW_OBJECTS], 'text_block', wrap_width=60
+    )
+    user_data_generation.write_to_gallery(data, 'expenses.jpg', env)
+    for i in range(10):
+      data = _get_expense_rows_as_text(
+          self.params[sqlite_validators.NOISE_ROW_OBJECTS],
+          'text_block',
+          wrap_width=60,
+      )
+      user_data_generation.write_to_gallery(data, f'old_expenses_{i}.jpg', env)
+
+  def tear_down(self, env: interface.AsyncEnv):
+    super().tear_down(env)
+    user_data_generation.clear_device_storage(env)
+
+class ExpenseAddSingleFromGallery8(_ExpenseAddMultiple):
+  """Task to add multiple expenses from Gallery into Expense Tracking app."""
+
+  complexity = 3
+  n_rows = 1
+  n_rows_noise = 24
+
+  app_names = (_APP_NAME, 'simple gallery pro')
+
+  @property
+  def goal(self) -> str:
+    return (
+        'Add the expenses from expenses.jpg in Simple Gallery Pro to '
+        f'{_APP_NAME}.'
+    )
+
+  def initialize_task(self, env: interface.AsyncEnv):
+    super().initialize_task(env)
+    user_data_generation.clear_device_storage(env)
+    data = _get_expense_rows_as_text(
+        self.params[sqlite_validators.ROW_OBJECTS], 'text_block', wrap_width=60
+    )
+    user_data_generation.write_to_gallery(data, 'expenses.jpg', env)
+    for i in range(10):
+      data = _get_expense_rows_as_text(
+          self.params[sqlite_validators.NOISE_ROW_OBJECTS],
+          'text_block',
+          wrap_width=60,
+      )
+      user_data_generation.write_to_gallery(data, f'old_expenses_{i}.jpg', env)
+
+  def tear_down(self, env: interface.AsyncEnv):
+    super().tear_down(env)
+    user_data_generation.clear_device_storage(env)
+
+class ExpenseAddSingleFromGallery9(_ExpenseAddMultiple):
+  """Task to add multiple expenses from Gallery into Expense Tracking app."""
+
+  complexity = 3
+  n_rows = 1
+  n_rows_noise = 26
+
+  app_names = (_APP_NAME, 'simple gallery pro')
+
+  @property
+  def goal(self) -> str:
+    return (
+        'Add the expenses from expenses.jpg in Simple Gallery Pro to '
+        f'{_APP_NAME}.'
+    )
+
+  def initialize_task(self, env: interface.AsyncEnv):
+    super().initialize_task(env)
+    user_data_generation.clear_device_storage(env)
+    data = _get_expense_rows_as_text(
+        self.params[sqlite_validators.ROW_OBJECTS], 'text_block', wrap_width=60
+    )
+    user_data_generation.write_to_gallery(data, 'expenses.jpg', env)
+    for i in range(10):
+      data = _get_expense_rows_as_text(
+          self.params[sqlite_validators.NOISE_ROW_OBJECTS],
+          'text_block',
+          wrap_width=60,
+      )
+      user_data_generation.write_to_gallery(data, f'old_expenses_{i}.jpg', env)
+
+  def tear_down(self, env: interface.AsyncEnv):
+    super().tear_down(env)
+    user_data_generation.clear_device_storage(env)
+
+class ExpenseAddSingleFromGallery10(_ExpenseAddMultiple):
+  """Task to add multiple expenses from Gallery into Expense Tracking app."""
+
+  complexity = 3
+  n_rows = 1
+  n_rows_noise = 30
+
+  app_names = (_APP_NAME, 'simple gallery pro')
+
+  @property
+  def goal(self) -> str:
+    return (
+        'Add the expenses from expenses.jpg in Simple Gallery Pro to '
+        f'{_APP_NAME}.'
+    )
+
+  def initialize_task(self, env: interface.AsyncEnv):
+    super().initialize_task(env)
+    user_data_generation.clear_device_storage(env)
+    data = _get_expense_rows_as_text(
+        self.params[sqlite_validators.ROW_OBJECTS], 'text_block', wrap_width=60
+    )
+    user_data_generation.write_to_gallery(data, 'expenses.jpg', env)
+    for i in range(10):
+      data = _get_expense_rows_as_text(
+          self.params[sqlite_validators.NOISE_ROW_OBJECTS],
+          'text_block',
+          wrap_width=60,
+      )
+      user_data_generation.write_to_gallery(data, f'old_expenses_{i}.jpg', env)
+
+  def tear_down(self, env: interface.AsyncEnv):
+    super().tear_down(env)
+    user_data_generation.clear_device_storage(env)
 class ExpenseAddMultipleFromMarkor(_ExpenseAddMultiple):
   """Task to add multiple expenses from Markor into the Expense Tracking app."""
 
@@ -353,8 +1327,302 @@ class ExpenseAddMultipleFromMarkor(_ExpenseAddMultiple):
   def tear_down(self, env: interface.AsyncEnv):
     super().tear_down(env)
     file_utils.clear_directory(device_constants.MARKOR_DATA, env.base_env)
+class ExpenseAddMultipleFromMarkor2(_ExpenseAddMultiple):
+  """Task to add multiple expenses from Markor into the Expense Tracking app."""
 
+  complexity = 3
+  n_rows = 2
+  n_rows_noise = 120
 
+  @property
+  def goal(self) -> str:
+    return (
+        'Go through the transactions in my_expenses.txt in Markor. Log the '
+        f'reimbursable transactions in the {_APP_NAME}.'
+    )
+
+  def initialize_task(self, env: interface.AsyncEnv):
+    super().initialize_task(env)
+    targets = [
+        dataclasses.replace(row, note=row.note + '. ' + 'Reimbursable.')
+        for row in self.params[sqlite_validators.ROW_OBJECTS]
+    ]
+    rows = targets + self.params[sqlite_validators.NOISE_ROW_OBJECTS]
+    random.shuffle(rows)
+    file_utils.clear_directory(device_constants.MARKOR_DATA, env.base_env)
+    user_data_generation.write_to_markor(
+        _get_expense_rows_as_text(rows, 'csv'),
+        'my_expenses.txt',
+        env,
+    )
+
+  def tear_down(self, env: interface.AsyncEnv):
+    super().tear_down(env)
+    file_utils.clear_directory(device_constants.MARKOR_DATA, env.base_env)
+
+class ExpenseAddMultipleFromMarkor3(_ExpenseAddMultiple):
+  """Task to add multiple expenses from Markor into the Expense Tracking app."""
+
+  complexity = 3
+  n_rows = 2
+  n_rows_noise = 115
+
+  @property
+  def goal(self) -> str:
+    return (
+        'Go through the transactions in my_expenses.txt in Markor. Log the '
+        f'reimbursable transactions in the {_APP_NAME}.'
+    )
+
+  def initialize_task(self, env: interface.AsyncEnv):
+    super().initialize_task(env)
+    targets = [
+        dataclasses.replace(row, note=row.note + '. ' + 'Reimbursable.')
+        for row in self.params[sqlite_validators.ROW_OBJECTS]
+    ]
+    rows = targets + self.params[sqlite_validators.NOISE_ROW_OBJECTS]
+    random.shuffle(rows)
+    file_utils.clear_directory(device_constants.MARKOR_DATA, env.base_env)
+    user_data_generation.write_to_markor(
+        _get_expense_rows_as_text(rows, 'csv'),
+        'my_expenses.txt',
+        env,
+    )
+
+  def tear_down(self, env: interface.AsyncEnv):
+    super().tear_down(env)
+    file_utils.clear_directory(device_constants.MARKOR_DATA, env.base_env)
+
+class ExpenseAddMultipleFromMarkor4(_ExpenseAddMultiple):
+  """Task to add multiple expenses from Markor into the Expense Tracking app."""
+
+  complexity = 3
+  n_rows = 2
+  n_rows_noise = 125
+
+  @property
+  def goal(self) -> str:
+    return (
+        'Go through the transactions in my_expenses.txt in Markor. Log the '
+        f'reimbursable transactions in the {_APP_NAME}.'
+    )
+
+  def initialize_task(self, env: interface.AsyncEnv):
+    super().initialize_task(env)
+    targets = [
+        dataclasses.replace(row, note=row.note + '. ' + 'Reimbursable.')
+        for row in self.params[sqlite_validators.ROW_OBJECTS]
+    ]
+    rows = targets + self.params[sqlite_validators.NOISE_ROW_OBJECTS]
+    random.shuffle(rows)
+    file_utils.clear_directory(device_constants.MARKOR_DATA, env.base_env)
+    user_data_generation.write_to_markor(
+        _get_expense_rows_as_text(rows, 'csv'),
+        'my_expenses.txt',
+        env,
+    )
+
+  def tear_down(self, env: interface.AsyncEnv):
+    super().tear_down(env)
+    file_utils.clear_directory(device_constants.MARKOR_DATA, env.base_env)
+
+class ExpenseAddMultipleFromMarkor5(_ExpenseAddMultiple):
+  """Task to add multiple expenses from Markor into the Expense Tracking app."""
+
+  complexity = 3
+  n_rows = 2
+  n_rows_noise = 130
+
+  @property
+  def goal(self) -> str:
+    return (
+        'Go through the transactions in my_expenses.txt in Markor. Log the '
+        f'reimbursable transactions in the {_APP_NAME}.'
+    )
+
+  def initialize_task(self, env: interface.AsyncEnv):
+    super().initialize_task(env)
+    targets = [
+        dataclasses.replace(row, note=row.note + '. ' + 'Reimbursable.')
+        for row in self.params[sqlite_validators.ROW_OBJECTS]
+    ]
+    rows = targets + self.params[sqlite_validators.NOISE_ROW_OBJECTS]
+    random.shuffle(rows)
+    file_utils.clear_directory(device_constants.MARKOR_DATA, env.base_env)
+    user_data_generation.write_to_markor(
+        _get_expense_rows_as_text(rows, 'csv'),
+        'my_expenses.txt',
+        env,
+    )
+
+  def tear_down(self, env: interface.AsyncEnv):
+    super().tear_down(env)
+    file_utils.clear_directory(device_constants.MARKOR_DATA, env.base_env)
+
+class ExpenseAddMultipleFromMarkor6(_ExpenseAddMultiple):
+  """Task to add multiple expenses from Markor into the Expense Tracking app."""
+
+  complexity = 3
+  n_rows = 2
+  n_rows_noise = 135
+
+  @property
+  def goal(self) -> str:
+    return (
+        'Go through the transactions in my_expenses.txt in Markor. Log the '
+        f'reimbursable transactions in the {_APP_NAME}.'
+    )
+
+  def initialize_task(self, env: interface.AsyncEnv):
+    super().initialize_task(env)
+    targets = [
+        dataclasses.replace(row, note=row.note + '. ' + 'Reimbursable.')
+        for row in self.params[sqlite_validators.ROW_OBJECTS]
+    ]
+    rows = targets + self.params[sqlite_validators.NOISE_ROW_OBJECTS]
+    random.shuffle(rows)
+    file_utils.clear_directory(device_constants.MARKOR_DATA, env.base_env)
+    user_data_generation.write_to_markor(
+        _get_expense_rows_as_text(rows, 'csv'),
+        'my_expenses.txt',
+        env,
+    )
+
+  def tear_down(self, env: interface.AsyncEnv):
+    super().tear_down(env)
+    file_utils.clear_directory(device_constants.MARKOR_DATA, env.base_env)
+
+class ExpenseAddMultipleFromMarkor7(_ExpenseAddMultiple):
+  """Task to add multiple expenses from Markor into the Expense Tracking app."""
+
+  complexity = 3
+  n_rows = 3
+  n_rows_noise = 100
+
+  @property
+  def goal(self) -> str:
+    return (
+        'Go through the transactions in my_expenses.txt in Markor. Log the '
+        f'reimbursable transactions in the {_APP_NAME}.'
+    )
+
+  def initialize_task(self, env: interface.AsyncEnv):
+    super().initialize_task(env)
+    targets = [
+        dataclasses.replace(row, note=row.note + '. ' + 'Reimbursable.')
+        for row in self.params[sqlite_validators.ROW_OBJECTS]
+    ]
+    rows = targets + self.params[sqlite_validators.NOISE_ROW_OBJECTS]
+    random.shuffle(rows)
+    file_utils.clear_directory(device_constants.MARKOR_DATA, env.base_env)
+    user_data_generation.write_to_markor(
+        _get_expense_rows_as_text(rows, 'csv'),
+        'my_expenses.txt',
+        env,
+    )
+
+  def tear_down(self, env: interface.AsyncEnv):
+    super().tear_down(env)
+    file_utils.clear_directory(device_constants.MARKOR_DATA, env.base_env)
+
+class ExpenseAddMultipleFromMarkor8(_ExpenseAddMultiple):
+  """Task to add multiple expenses from Markor into the Expense Tracking app."""
+
+  complexity = 3
+  n_rows = 3
+  n_rows_noise = 105
+
+  @property
+  def goal(self) -> str:
+    return (
+        'Go through the transactions in my_expenses.txt in Markor. Log the '
+        f'reimbursable transactions in the {_APP_NAME}.'
+    )
+
+  def initialize_task(self, env: interface.AsyncEnv):
+    super().initialize_task(env)
+    targets = [
+        dataclasses.replace(row, note=row.note + '. ' + 'Reimbursable.')
+        for row in self.params[sqlite_validators.ROW_OBJECTS]
+    ]
+    rows = targets + self.params[sqlite_validators.NOISE_ROW_OBJECTS]
+    random.shuffle(rows)
+    file_utils.clear_directory(device_constants.MARKOR_DATA, env.base_env)
+    user_data_generation.write_to_markor(
+        _get_expense_rows_as_text(rows, 'csv'),
+        'my_expenses.txt',
+        env,
+    )
+
+  def tear_down(self, env: interface.AsyncEnv):
+    super().tear_down(env)
+    file_utils.clear_directory(device_constants.MARKOR_DATA, env.base_env)
+
+class ExpenseAddMultipleFromMarkor9(_ExpenseAddMultiple):
+  """Task to add multiple expenses from Markor into the Expense Tracking app."""
+
+  complexity = 3
+  n_rows = 3
+  n_rows_noise = 110
+
+  @property
+  def goal(self) -> str:
+    return (
+        'Go through the transactions in my_expenses.txt in Markor. Log the '
+        f'reimbursable transactions in the {_APP_NAME}.'
+    )
+
+  def initialize_task(self, env: interface.AsyncEnv):
+    super().initialize_task(env)
+    targets = [
+        dataclasses.replace(row, note=row.note + '. ' + 'Reimbursable.')
+        for row in self.params[sqlite_validators.ROW_OBJECTS]
+    ]
+    rows = targets + self.params[sqlite_validators.NOISE_ROW_OBJECTS]
+    random.shuffle(rows)
+    file_utils.clear_directory(device_constants.MARKOR_DATA, env.base_env)
+    user_data_generation.write_to_markor(
+        _get_expense_rows_as_text(rows, 'csv'),
+        'my_expenses.txt',
+        env,
+    )
+
+  def tear_down(self, env: interface.AsyncEnv):
+    super().tear_down(env)
+    file_utils.clear_directory(device_constants.MARKOR_DATA, env.base_env)
+
+class ExpenseAddMultipleFromMarkor10(_ExpenseAddMultiple):
+  """Task to add multiple expenses from Markor into the Expense Tracking app."""
+
+  complexity = 3
+  n_rows = 3
+  n_rows_noise = 120
+
+  @property
+  def goal(self) -> str:
+    return (
+        'Go through the transactions in my_expenses.txt in Markor. Log the '
+        f'reimbursable transactions in the {_APP_NAME}.'
+    )
+
+  def initialize_task(self, env: interface.AsyncEnv):
+    super().initialize_task(env)
+    targets = [
+        dataclasses.replace(row, note=row.note + '. ' + 'Reimbursable.')
+        for row in self.params[sqlite_validators.ROW_OBJECTS]
+    ]
+    rows = targets + self.params[sqlite_validators.NOISE_ROW_OBJECTS]
+    random.shuffle(rows)
+    file_utils.clear_directory(device_constants.MARKOR_DATA, env.base_env)
+    user_data_generation.write_to_markor(
+        _get_expense_rows_as_text(rows, 'csv'),
+        'my_expenses.txt',
+        env,
+    )
+
+  def tear_down(self, env: interface.AsyncEnv):
+    super().tear_down(env)
+    file_utils.clear_directory(device_constants.MARKOR_DATA, env.base_env)
 class ExpenseAddMultipleFromGallery(_ExpenseAddMultiple):
   """Task to add multiple expenses from Gallery into Expense Tracking app."""
 
@@ -390,7 +1658,40 @@ class ExpenseAddMultipleFromGallery(_ExpenseAddMultiple):
     super().tear_down(env)
     user_data_generation.clear_device_storage(env)
 
+class ExpenseAddMultipleFromGallery2(_ExpenseAddMultiple):
+  """Task to add multiple expenses from Gallery into Expense Tracking app."""
 
+  complexity = 3
+  n_rows = 3
+  n_rows_noise = 15
+
+  app_names = (_APP_NAME, 'simple gallery pro')
+
+  @property
+  def goal(self) -> str:
+    return (
+        'Add the expenses from expenses.jpg in Simple Gallery Pro to '
+        f'{_APP_NAME}.'
+    )
+
+  def initialize_task(self, env: interface.AsyncEnv):
+    super().initialize_task(env)
+    user_data_generation.clear_device_storage(env)
+    data = _get_expense_rows_as_text(
+        self.params[sqlite_validators.ROW_OBJECTS], 'text_block', wrap_width=60
+    )
+    user_data_generation.write_to_gallery(data, 'expenses.jpg', env)
+    for i in range(10):
+      data = _get_expense_rows_as_text(
+          self.params[sqlite_validators.NOISE_ROW_OBJECTS],
+          'text_block',
+          wrap_width=60,
+      )
+      user_data_generation.write_to_gallery(data, f'old_expenses_{i}.jpg', env)
+
+  def tear_down(self, env: interface.AsyncEnv):
+    super().tear_down(env)
+    user_data_generation.clear_device_storage(env)
 #### Generate expense data for tasks. ##########################################
 
 

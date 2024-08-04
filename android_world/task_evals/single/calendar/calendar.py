@@ -16,8 +16,10 @@
 
 import dataclasses
 import random
+import subprocess
 from typing import Any, Callable, Optional
 from android_world.env import device_constants
+from android_world.env import interface
 from android_world.task_evals.common_validators import sqlite_validators
 from android_world.task_evals.single.calendar import calendar_evaluators
 from android_world.task_evals.single.calendar import calendar_utils
@@ -81,14 +83,38 @@ class _SimpleCalendar(sqlite_validators.SQLiteApp):
   table_name = calendar_utils.EVENTS_TABLE
   row_type = sqlite_schema_utils.CalendarEvent
 
+class SimpleCalendarOpen(_SimpleCalendar):
+    """Task for opening AudioRecorder."""
+
+    complexity = 1
+    schema = {}
+    template = (
+        "Open calendar app"
+    )
+
+    def is_successful(self, env: interface.AsyncEnv) -> float:
+        super().is_successful(env)
+        adb_command = "adb shell dumpsys window windows"
+        result = subprocess.run(adb_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        # print(result)
+        result = result.stdout.split('    ')
+        for i in range(len(result)):
+            if len(result[i]) > len("mActivityRecord") and result[i][:len("mActivityRecord")] == "mActivityRecord":
+                print(result[i])
+                if result[i].split(" ")[2] == "ccom.simplemobiletools.calendar.pro/.activities.MainActivity}":
+                    return 1
+                else:
+                    return 0
+
+
+    @classmethod
+    def generate_random_params(cls) -> dict[str, str | int]:
+        return {}
 
 class SimpleCalendarAddOneEvent(
     sqlite_validators.AddMultipleRows, _SimpleCalendar
 ):
-  """Task for creating a calendar event in Simple Calendar Pro.
 
-  Uses the absolute date in the template.
-  """
 
   n_rows = 1  # Unused, but required by base class.
   complexity = 2
@@ -138,7 +164,6 @@ class SimpleCalendarAddOneEvent(
         ),
     }
 
-
 class SimpleCalendarAddOneEventRelativeDay(SimpleCalendarAddOneEvent):
   """Task for creating a calendar event in Simple Calendar Pro.
 
@@ -176,7 +201,43 @@ class SimpleCalendarAddOneEventRelativeDay(SimpleCalendarAddOneEvent):
             ),
         )
     )
+class SimpleCalendarAddOneEventRelativeDay2(SimpleCalendarAddOneEvent):
+  """Task for creating a calendar event in Simple Calendar Pro.
 
+  Uses the relative day of week in the template: from "this Monday" -> "this
+  Sunday".
+  """
+
+  _DAY_RANGE = 6
+
+  template = (
+      "In Simple Calendar Pro, create a calendar event for this {day_of_week}"
+      " at {hour}h with the title '{event_title}' and the description"
+      " '{event_description}'. The event should last for {duration_mins} mins."
+  )
+
+  @property
+  def goal(self) -> str:
+    # Add day of week.
+    dt: sqlite_schema_utils.CalendarEvent = self.params[
+        sqlite_validators.ROW_OBJECTS
+    ][0]
+    day_of_week = dt.start_datetime.strftime("%A")
+    self.params[_DAY_OF_WEEK] = day_of_week
+    return self.template.format(**self.params)
+
+  @classmethod
+  def _get_random_target_row(cls):
+    return events_generator.generate_event(
+        datetime_utils.create_random_october_2023_unix_ts(
+            # Monday, Oct 16 -> Saturday, Oct 21.
+            start_day=device_constants.DT.day + 1,
+            end_day=(
+                device_constants.DT.day
+                + SimpleCalendarAddOneEventRelativeDay._DAY_RANGE
+            ),
+        )
+    )
 
 class SimpleCalendarAddOneEventTomorrow(SimpleCalendarAddOneEvent):
   """Task for creating a calendar event in Simple Calendar Pro for tomorrow."""
@@ -195,8 +256,39 @@ class SimpleCalendarAddOneEventTomorrow(SimpleCalendarAddOneEvent):
             device_constants.DT.day + 1, device_constants.DT.day + 1
         )
     )
+class SimpleCalendarAddOneEventThedayafterTomorrow(SimpleCalendarAddOneEvent):
+  """Task for creating a calendar event in Simple Calendar Pro for the day after tomorrow"""
 
+  template = (
+      "In Simple Calendar Pro, create a calendar event for the day after tomorrow"
+      " at {hour}h with the title '{event_title}' and the description"
+      " '{event_description}'. The event should last for {duration_mins} mins."
+  )
 
+  @classmethod
+  def _get_random_target_row(cls):
+    # Generate an event for tomorrow.
+    return events_generator.generate_event(
+        datetime_utils.create_random_october_2023_unix_ts(
+            device_constants.DT.day + 2, device_constants.DT.day + 2
+        )
+    )
+class SimpleCalendarAddOneEventInOneWeek(SimpleCalendarAddOneEvent):
+  """Task for creating a calendar event in Simple Calendar Pro in two weeks from today."""
+
+  template = (
+      "In Simple Calendar Pro, create a calendar event in one week from today"
+      " at {hour}h with the title '{event_title}' and the description"
+      " '{event_description}'. The event should last for {duration_mins} mins."
+  )
+
+  @classmethod
+  def _get_random_target_row(cls):
+    return events_generator.generate_event(
+        datetime_utils.create_random_october_2023_unix_ts(
+            device_constants.DT.day + 7, device_constants.DT.day + 7
+        )
+    )
 class SimpleCalendarAddOneEventInTwoWeeks(SimpleCalendarAddOneEvent):
   """Task for creating a calendar event in Simple Calendar Pro in two weeks from today."""
 
@@ -213,7 +305,38 @@ class SimpleCalendarAddOneEventInTwoWeeks(SimpleCalendarAddOneEvent):
             device_constants.DT.day + 14, device_constants.DT.day + 14
         )
     )
+class SimpleCalendarAddOneEventInOneMonth(SimpleCalendarAddOneEvent):
+  """Task for creating a calendar event in Simple Calendar Pro in one month from today."""
 
+  template = (
+      "In Simple Calendar Pro, create a calendar event in one month from today"
+      " at {hour}h with the title '{event_title}' and the description"
+      " '{event_description}'. The event should last for {duration_mins} mins."
+  )
+
+  @classmethod
+  def _get_random_target_row(cls):
+    return events_generator.generate_event(
+        datetime_utils.create_random_october_2023_unix_ts(
+            device_constants.DT.month + 1, device_constants.DT.month + 1
+        )
+    )
+class SimpleCalendarAddOneEventInTwoMonth(SimpleCalendarAddOneEvent):
+  """Task for creating a calendar event in Simple Calendar Pro in one month from today."""
+
+  template = (
+      "In Simple Calendar Pro, create a calendar event in one month from today"
+      " at {hour}h with the title '{event_title}' and the description"
+      " '{event_description}'. The event should last for {duration_mins} mins."
+  )
+
+  @classmethod
+  def _get_random_target_row(cls):
+    return events_generator.generate_event(
+        datetime_utils.create_random_october_2023_unix_ts(
+            device_constants.DT.month + 2, device_constants.DT.month + 2
+        )
+    )
 
 class SimpleCalendarAddRepeatingEvent(SimpleCalendarAddOneEvent):
   """Task for creating a repeating calendar event in Simple Calendar Pro."""
@@ -256,7 +379,6 @@ class SimpleCalendarAddRepeatingEvent(SimpleCalendarAddOneEvent):
         sqlite_validators.NOISE_ROW_OBJECTS: noise_events,
         _REPEAT_INTERVAL: repeat_interval,
     }
-
 
 class SimpleCalendarDeleteEvents(
     sqlite_validators.DeleteMultipleRows, _SimpleCalendar
@@ -316,7 +438,526 @@ class SimpleCalendarDeleteEvents(
         sqlite_validators.NOISE_ROW_OBJECTS: noise_events,
     }
 
+class SimpleCalendarDeleteEvents2(
+    sqlite_validators.DeleteMultipleRows, _SimpleCalendar
+):
+  """Task to delete multiple calendar events in Simple Calendar Pro.
 
+  Uses the absolute date in the template.
+  """
+
+  n_rows = 3
+  n_rows_noise = 25
+  complexity = 3
+  template = (
+      "In Simple Calendar Pro, delete all the calendar events on"
+      " {year}-{month}-{day}"
+  )
+
+  def validate_deletion_integrity(
+      self,
+      before: list[sqlite_schema_utils.CalendarEvent],
+      after: list[sqlite_schema_utils.CalendarEvent],
+  ) -> bool:
+    """Validates the integrity of the event deletion."""
+    return calendar_evaluators.validate_event_removal_integrity(
+        before, after, [r.id for r in self.rows_to_delete]
+    )
+
+  @classmethod
+  def _get_random_target_row(cls, day: int):
+    return events_generator.generate_event(
+        datetime_utils.create_random_october_2023_unix_ts(
+            start_day=day, end_day=day
+        )
+    )
+
+  @classmethod
+  def generate_random_params(cls) -> dict[str, Any]:
+    """Generate random parameters for a remove calendar event task."""
+    template = events_generator.generate_event(
+        datetime_utils.create_random_october_2023_unix_ts()
+    )
+    events = [
+        cls._get_random_target_row(template.start_datetime.day)
+        for _ in range(cls.n_rows)
+    ]
+    noise_events = _generate_noise_events(
+        events,
+        cls.n_rows_noise,
+        filter_fn=lambda candidate: candidate.start_datetime.day
+        not in (target.start_datetime.day for target in events),
+    )
+    return {
+        _YEAR: device_constants.DT.year,
+        _MONTH: device_constants.DT.month,
+        _DAY: template.start_datetime.day,
+        sqlite_validators.ROW_OBJECTS: events,
+        sqlite_validators.NOISE_ROW_OBJECTS: noise_events,
+    }
+
+class SimpleCalendarDeleteEvents3(
+    sqlite_validators.DeleteMultipleRows, _SimpleCalendar
+):
+  """Task to delete multiple calendar events in Simple Calendar Pro.
+
+  Uses the absolute date in the template.
+  """
+
+  n_rows = 3
+  n_rows_noise = 26
+  complexity = 3
+  template = (
+      "In Simple Calendar Pro, delete all the calendar events on"
+      " {year}-{month}-{day}"
+  )
+
+  def validate_deletion_integrity(
+      self,
+      before: list[sqlite_schema_utils.CalendarEvent],
+      after: list[sqlite_schema_utils.CalendarEvent],
+  ) -> bool:
+    """Validates the integrity of the event deletion."""
+    return calendar_evaluators.validate_event_removal_integrity(
+        before, after, [r.id for r in self.rows_to_delete]
+    )
+
+  @classmethod
+  def _get_random_target_row(cls, day: int):
+    return events_generator.generate_event(
+        datetime_utils.create_random_october_2023_unix_ts(
+            start_day=day, end_day=day
+        )
+    )
+
+  @classmethod
+  def generate_random_params(cls) -> dict[str, Any]:
+    """Generate random parameters for a remove calendar event task."""
+    template = events_generator.generate_event(
+        datetime_utils.create_random_october_2023_unix_ts()
+    )
+    events = [
+        cls._get_random_target_row(template.start_datetime.day)
+        for _ in range(cls.n_rows)
+    ]
+    noise_events = _generate_noise_events(
+        events,
+        cls.n_rows_noise,
+        filter_fn=lambda candidate: candidate.start_datetime.day
+        not in (target.start_datetime.day for target in events),
+    )
+    return {
+        _YEAR: device_constants.DT.year,
+        _MONTH: device_constants.DT.month,
+        _DAY: template.start_datetime.day,
+        sqlite_validators.ROW_OBJECTS: events,
+        sqlite_validators.NOISE_ROW_OBJECTS: noise_events,
+    }
+
+class SimpleCalendarDeleteEvents4(
+    sqlite_validators.DeleteMultipleRows, _SimpleCalendar
+):
+  """Task to delete multiple calendar events in Simple Calendar Pro.
+
+  Uses the absolute date in the template.
+  """
+
+  n_rows = 3
+  n_rows_noise = 27
+  complexity = 3
+  template = (
+      "In Simple Calendar Pro, delete all the calendar events on"
+      " {year}-{month}-{day}"
+  )
+
+  def validate_deletion_integrity(
+      self,
+      before: list[sqlite_schema_utils.CalendarEvent],
+      after: list[sqlite_schema_utils.CalendarEvent],
+  ) -> bool:
+    """Validates the integrity of the event deletion."""
+    return calendar_evaluators.validate_event_removal_integrity(
+        before, after, [r.id for r in self.rows_to_delete]
+    )
+
+  @classmethod
+  def _get_random_target_row(cls, day: int):
+    return events_generator.generate_event(
+        datetime_utils.create_random_october_2023_unix_ts(
+            start_day=day, end_day=day
+        )
+    )
+
+  @classmethod
+  def generate_random_params(cls) -> dict[str, Any]:
+    """Generate random parameters for a remove calendar event task."""
+    template = events_generator.generate_event(
+        datetime_utils.create_random_october_2023_unix_ts()
+    )
+    events = [
+        cls._get_random_target_row(template.start_datetime.day)
+        for _ in range(cls.n_rows)
+    ]
+    noise_events = _generate_noise_events(
+        events,
+        cls.n_rows_noise,
+        filter_fn=lambda candidate: candidate.start_datetime.day
+        not in (target.start_datetime.day for target in events),
+    )
+    return {
+        _YEAR: device_constants.DT.year,
+        _MONTH: device_constants.DT.month,
+        _DAY: template.start_datetime.day,
+        sqlite_validators.ROW_OBJECTS: events,
+        sqlite_validators.NOISE_ROW_OBJECTS: noise_events,
+    }
+
+class SimpleCalendarDeleteEvents5(
+    sqlite_validators.DeleteMultipleRows, _SimpleCalendar
+):
+  """Task to delete multiple calendar events in Simple Calendar Pro.
+
+  Uses the absolute date in the template.
+  """
+
+  n_rows = 3
+  n_rows_noise = 28
+  complexity = 3
+  template = (
+      "In Simple Calendar Pro, delete all the calendar events on"
+      " {year}-{month}-{day}"
+  )
+
+  def validate_deletion_integrity(
+      self,
+      before: list[sqlite_schema_utils.CalendarEvent],
+      after: list[sqlite_schema_utils.CalendarEvent],
+  ) -> bool:
+    """Validates the integrity of the event deletion."""
+    return calendar_evaluators.validate_event_removal_integrity(
+        before, after, [r.id for r in self.rows_to_delete]
+    )
+
+  @classmethod
+  def _get_random_target_row(cls, day: int):
+    return events_generator.generate_event(
+        datetime_utils.create_random_october_2023_unix_ts(
+            start_day=day, end_day=day
+        )
+    )
+
+  @classmethod
+  def generate_random_params(cls) -> dict[str, Any]:
+    """Generate random parameters for a remove calendar event task."""
+    template = events_generator.generate_event(
+        datetime_utils.create_random_october_2023_unix_ts()
+    )
+    events = [
+        cls._get_random_target_row(template.start_datetime.day)
+        for _ in range(cls.n_rows)
+    ]
+    noise_events = _generate_noise_events(
+        events,
+        cls.n_rows_noise,
+        filter_fn=lambda candidate: candidate.start_datetime.day
+        not in (target.start_datetime.day for target in events),
+    )
+    return {
+        _YEAR: device_constants.DT.year,
+        _MONTH: device_constants.DT.month,
+        _DAY: template.start_datetime.day,
+        sqlite_validators.ROW_OBJECTS: events,
+        sqlite_validators.NOISE_ROW_OBJECTS: noise_events,
+    }
+class SimpleCalendarDeleteEvents6(
+    sqlite_validators.DeleteMultipleRows, _SimpleCalendar
+):
+  """Task to delete multiple calendar events in Simple Calendar Pro.
+
+  Uses the absolute date in the template.
+  """
+
+  n_rows = 5
+  n_rows_noise = 29
+  complexity = 4
+  template = (
+      "In Simple Calendar Pro, delete all the calendar events on"
+      " {year}-{month}-{day}"
+  )
+
+  def validate_deletion_integrity(
+      self,
+      before: list[sqlite_schema_utils.CalendarEvent],
+      after: list[sqlite_schema_utils.CalendarEvent],
+  ) -> bool:
+    """Validates the integrity of the event deletion."""
+    return calendar_evaluators.validate_event_removal_integrity(
+        before, after, [r.id for r in self.rows_to_delete]
+    )
+
+  @classmethod
+  def _get_random_target_row(cls, day: int):
+    return events_generator.generate_event(
+        datetime_utils.create_random_october_2023_unix_ts(
+            start_day=day, end_day=day
+        )
+    )
+
+  @classmethod
+  def generate_random_params(cls) -> dict[str, Any]:
+    """Generate random parameters for a remove calendar event task."""
+    template = events_generator.generate_event(
+        datetime_utils.create_random_october_2023_unix_ts()
+    )
+    events = [
+        cls._get_random_target_row(template.start_datetime.day)
+        for _ in range(cls.n_rows)
+    ]
+    noise_events = _generate_noise_events(
+        events,
+        cls.n_rows_noise,
+        filter_fn=lambda candidate: candidate.start_datetime.day
+        not in (target.start_datetime.day for target in events),
+    )
+    return {
+        _YEAR: device_constants.DT.year,
+        _MONTH: device_constants.DT.month,
+        _DAY: template.start_datetime.day,
+        sqlite_validators.ROW_OBJECTS: events,
+        sqlite_validators.NOISE_ROW_OBJECTS: noise_events,
+    }
+
+class SimpleCalendarDeleteEvents7(
+    sqlite_validators.DeleteMultipleRows, _SimpleCalendar
+):
+  """Task to delete multiple calendar events in Simple Calendar Pro.
+
+  Uses the absolute date in the template.
+  """
+
+  n_rows = 5
+  n_rows_noise = 30
+  complexity = 4
+  template = (
+      "In Simple Calendar Pro, delete all the calendar events on"
+      " {year}-{month}-{day}"
+  )
+
+  def validate_deletion_integrity(
+      self,
+      before: list[sqlite_schema_utils.CalendarEvent],
+      after: list[sqlite_schema_utils.CalendarEvent],
+  ) -> bool:
+    """Validates the integrity of the event deletion."""
+    return calendar_evaluators.validate_event_removal_integrity(
+        before, after, [r.id for r in self.rows_to_delete]
+    )
+
+  @classmethod
+  def _get_random_target_row(cls, day: int):
+    return events_generator.generate_event(
+        datetime_utils.create_random_october_2023_unix_ts(
+            start_day=day, end_day=day
+        )
+    )
+
+  @classmethod
+  def generate_random_params(cls) -> dict[str, Any]:
+    """Generate random parameters for a remove calendar event task."""
+    template = events_generator.generate_event(
+        datetime_utils.create_random_october_2023_unix_ts()
+    )
+    events = [
+        cls._get_random_target_row(template.start_datetime.day)
+        for _ in range(cls.n_rows)
+    ]
+    noise_events = _generate_noise_events(
+        events,
+        cls.n_rows_noise,
+        filter_fn=lambda candidate: candidate.start_datetime.day
+        not in (target.start_datetime.day for target in events),
+    )
+    return {
+        _YEAR: device_constants.DT.year,
+        _MONTH: device_constants.DT.month,
+        _DAY: template.start_datetime.day,
+        sqlite_validators.ROW_OBJECTS: events,
+        sqlite_validators.NOISE_ROW_OBJECTS: noise_events,
+    }
+
+class SimpleCalendarDeleteEvents8(
+    sqlite_validators.DeleteMultipleRows, _SimpleCalendar
+):
+  """Task to delete multiple calendar events in Simple Calendar Pro.
+
+  Uses the absolute date in the template.
+  """
+
+  n_rows = 3
+  n_rows_noise = 30
+  complexity = 3
+  template = (
+      "In Simple Calendar Pro, delete all the calendar events on"
+      " {year}-{month}-{day}"
+  )
+
+  def validate_deletion_integrity(
+      self,
+      before: list[sqlite_schema_utils.CalendarEvent],
+      after: list[sqlite_schema_utils.CalendarEvent],
+  ) -> bool:
+    """Validates the integrity of the event deletion."""
+    return calendar_evaluators.validate_event_removal_integrity(
+        before, after, [r.id for r in self.rows_to_delete]
+    )
+
+  @classmethod
+  def _get_random_target_row(cls, day: int):
+    return events_generator.generate_event(
+        datetime_utils.create_random_october_2023_unix_ts(
+            start_day=day, end_day=day
+        )
+    )
+
+  @classmethod
+  def generate_random_params(cls) -> dict[str, Any]:
+    """Generate random parameters for a remove calendar event task."""
+    template = events_generator.generate_event(
+        datetime_utils.create_random_october_2023_unix_ts()
+    )
+    events = [
+        cls._get_random_target_row(template.start_datetime.day)
+        for _ in range(cls.n_rows)
+    ]
+    noise_events = _generate_noise_events(
+        events,
+        cls.n_rows_noise,
+        filter_fn=lambda candidate: candidate.start_datetime.day
+        not in (target.start_datetime.day for target in events),
+    )
+    return {
+        _YEAR: device_constants.DT.year,
+        _MONTH: device_constants.DT.month,
+        _DAY: template.start_datetime.day,
+        sqlite_validators.ROW_OBJECTS: events,
+        sqlite_validators.NOISE_ROW_OBJECTS: noise_events,
+    }
+
+class SimpleCalendarDeleteEvents9(
+    sqlite_validators.DeleteMultipleRows, _SimpleCalendar
+):
+  """Task to delete multiple calendar events in Simple Calendar Pro.
+
+  Uses the absolute date in the template.
+  """
+
+  n_rows = 4
+  n_rows_noise = 40
+  complexity = 3
+  template = (
+      "In Simple Calendar Pro, delete all the calendar events on"
+      " {year}-{month}-{day}"
+  )
+
+  def validate_deletion_integrity(
+      self,
+      before: list[sqlite_schema_utils.CalendarEvent],
+      after: list[sqlite_schema_utils.CalendarEvent],
+  ) -> bool:
+    """Validates the integrity of the event deletion."""
+    return calendar_evaluators.validate_event_removal_integrity(
+        before, after, [r.id for r in self.rows_to_delete]
+    )
+
+  @classmethod
+  def _get_random_target_row(cls, day: int):
+    return events_generator.generate_event(
+        datetime_utils.create_random_october_2023_unix_ts(
+            start_day=day, end_day=day
+        )
+    )
+
+  @classmethod
+  def generate_random_params(cls) -> dict[str, Any]:
+    """Generate random parameters for a remove calendar event task."""
+    template = events_generator.generate_event(
+        datetime_utils.create_random_october_2023_unix_ts()
+    )
+    events = [
+        cls._get_random_target_row(template.start_datetime.day)
+        for _ in range(cls.n_rows)
+    ]
+    noise_events = _generate_noise_events(
+        events,
+        cls.n_rows_noise,
+        filter_fn=lambda candidate: candidate.start_datetime.day
+        not in (target.start_datetime.day for target in events),
+    )
+    return {
+        _YEAR: device_constants.DT.year,
+        _MONTH: device_constants.DT.month,
+        _DAY: template.start_datetime.day,
+        sqlite_validators.ROW_OBJECTS: events,
+        sqlite_validators.NOISE_ROW_OBJECTS: noise_events,
+    }
+
+class SimpleCalendarDeleteEvents10(
+    sqlite_validators.DeleteMultipleRows, _SimpleCalendar
+):
+  """Task to delete multiple calendar events in Simple Calendar Pro.
+
+  Uses the absolute date in the template.
+  """
+
+  n_rows = 3
+  n_rows_noise = 50
+  complexity = 3
+  template = (
+      "In Simple Calendar Pro, delete all the calendar events on"
+      " {year}-{month}-{day}"
+  )
+
+  def validate_deletion_integrity(
+      self,
+      before: list[sqlite_schema_utils.CalendarEvent],
+      after: list[sqlite_schema_utils.CalendarEvent],
+  ) -> bool:
+    """Validates the integrity of the event deletion."""
+    return calendar_evaluators.validate_event_removal_integrity(
+        before, after, [r.id for r in self.rows_to_delete]
+    )
+
+  @classmethod
+  def _get_random_target_row(cls, day: int):
+    return events_generator.generate_event(
+        datetime_utils.create_random_october_2023_unix_ts(
+            start_day=day, end_day=day
+        )
+    )
+
+  @classmethod
+  def generate_random_params(cls) -> dict[str, Any]:
+    """Generate random parameters for a remove calendar event task."""
+    template = events_generator.generate_event(
+        datetime_utils.create_random_october_2023_unix_ts()
+    )
+    events = [
+        cls._get_random_target_row(template.start_datetime.day)
+        for _ in range(cls.n_rows)
+    ]
+    noise_events = _generate_noise_events(
+        events,
+        cls.n_rows_noise,
+        filter_fn=lambda candidate: candidate.start_datetime.day
+        not in (target.start_datetime.day for target in events),
+    )
+    return {
+        _YEAR: device_constants.DT.year,
+        _MONTH: device_constants.DT.month,
+        _DAY: template.start_datetime.day,
+        sqlite_validators.ROW_OBJECTS: events,
+        sqlite_validators.NOISE_ROW_OBJECTS: noise_events,
+    }
 class SimpleCalendarDeleteOneEvent(SimpleCalendarDeleteEvents):
   """Task to delete a single calendar event in Simple Calendar Pro.
 
@@ -412,3 +1053,4 @@ class SimpleCalendarDeleteEventsOnRelativeDay(SimpleCalendarDeleteEvents):
         sqlite_validators.ROW_OBJECTS: events,
         sqlite_validators.NOISE_ROW_OBJECTS: noise_events,
     }
+

@@ -24,6 +24,7 @@ from android_world.task_evals.utils import sqlite_schema_utils
 from android_world.task_evals.utils import user_data_generation
 from android_world.utils import file_utils
 from android_world.task_evals import task_eval
+from android_world.task_evals.single import simple_gallery_pro
 
 _DB_PATH = '/data/data/com.flauschcode.broccoli/databases/broccoli'
 _TABLE_NAME = 'recipes'
@@ -38,7 +39,7 @@ _TEXT_REPRESENTATION_TYPE = 'text_representation_type'
 class _RecipeApp(sqlite_validators.SQLiteApp):
   # From TaskEval.
   schema = {}
-  app_names = (_APP_NAME,)
+  app_names = ("broccoli app", "simple gallery pro")
   template = ''  # Unused, since we directly build goal in implementations.
 
   # From sqlite_base.SQLiteApp
@@ -49,7 +50,7 @@ class _RecipeApp(sqlite_validators.SQLiteApp):
   row_type = sqlite_schema_utils.Recipe
 
 
-class _RecipeDeleteMultipleRecipes(
+class _RecipeDeleteMultipleRecipesAndGallery(
     sqlite_validators.DeleteMultipleRows, _RecipeApp
 ):
   """Task to delete multiple recipes in Broccoli Recipe App."""
@@ -126,7 +127,7 @@ class BroccoliOpen(task_eval.TaskEval):
         return {}
 
 
-class RecipeDeleteSingleRecipe(_RecipeDeleteMultipleRecipes):
+class RecipeDeleteSingleRecipeAndGallery(_RecipeDeleteMultipleRecipesAndGallery):
   """Delete single recipe in Broccoli Recipe App without noise."""
 
   complexity = 1
@@ -134,7 +135,7 @@ class RecipeDeleteSingleRecipe(_RecipeDeleteMultipleRecipes):
   n_rows_noise = 0
 
 
-class RecipeDeleteSingleWithRecipeWithNoise(_RecipeDeleteMultipleRecipes):
+class RecipeDeleteSingleWithRecipeWithNoiseAndGallery(_RecipeDeleteMultipleRecipesAndGallery):
   """Delete single recipe in Broccoli Recipe App with noise."""
 
   complexity = 3
@@ -142,35 +143,35 @@ class RecipeDeleteSingleWithRecipeWithNoise(_RecipeDeleteMultipleRecipes):
   n_rows_noise = 29
 
 
-class RecipeDeleteMultipleRecipes(_RecipeDeleteMultipleRecipes):
+class RecipeDeleteMultipleRecipesAndGallery(_RecipeDeleteMultipleRecipesAndGallery):
   """Delete multiple recipes in Broccoli Recipe App."""
 
   complexity = 2
   n_rows = 3
   n_rows_noise = 0
 
-class RecipeDeleteMultipleRecipes2(_RecipeDeleteMultipleRecipes):
+class RecipeDeleteMultipleRecipes2AndGallery(_RecipeDeleteMultipleRecipesAndGallery):
   """Delete multiple recipes in Broccoli Recipe App."""
 
   complexity = 3
   n_rows = 5
   n_rows_noise = 0
 
-class RecipeDeleteMultipleRecipesWithNoise(_RecipeDeleteMultipleRecipes):
+class RecipeDeleteMultipleRecipesWithNoiseAndGallery(_RecipeDeleteMultipleRecipesAndGallery):
   """Delete multiple recipes in Broccoli Recipe App with noise."""
 
   complexity = 3
   n_rows = 3
   n_rows_noise = 29
 
-class RecipeDeleteMultipleRecipesWithNoise2(_RecipeDeleteMultipleRecipes):
+class RecipeDeleteMultipleRecipesWithNoise2AndGallery(_RecipeDeleteMultipleRecipesAndGallery):
   """Delete multiple recipes in Broccoli Recipe App with noise."""
 
   complexity = 3
   n_rows = 3
   n_rows_noise = 29
 
-class RecipeDeleteMultipleRecipesWithConstraint(_RecipeDeleteMultipleRecipes):
+class RecipeDeleteMultipleRecipesWithConstraintAndGallery(_RecipeDeleteMultipleRecipesAndGallery):
   """Delete multiple recipes in Broccoli Recipe App based on ingredient."""
 
   complexity = 3
@@ -457,7 +458,7 @@ class RecipeAddSingleRecipe(_RecipeAddMultipleRecipes):
   n_rows_noise = 10
 
 
-class RecipeAddMultipleRecipes(_RecipeAddMultipleRecipes):
+class RecipeAddMultipleRecipesAndGallery(_RecipeAddMultipleRecipes):
   """Task to delete multiple recipes in Broccoli Recipe App."""
 
   complexity = 4
@@ -495,7 +496,7 @@ class RecipeAddMultipleRecipesFromMarkor(_RecipeAddMultipleRecipes):
     file_utils.clear_directory(device_constants.MARKOR_DATA, env.base_env)
 
 
-class RecipeAddMultipleRecipesFromMarkor2(RecipeAddMultipleRecipesFromMarkor):
+class RecipeAddMultipleRecipesFromMarkorAndGallery2(RecipeAddMultipleRecipesFromMarkor):
   """Harder add recipe task, that involves navigating a large text file."""
 
   complexity = 4
@@ -554,7 +555,7 @@ class RecipeAddMultipleRecipesFromMarkor2(RecipeAddMultipleRecipesFromMarkor):
         'prep_time': prep_time,
     }
 
-class RecipeAddMultipleRecipesFromMarkor3(RecipeAddMultipleRecipesFromMarkor):
+class RecipeAddMultipleRecipesFromMarkorAndGallery3(RecipeAddMultipleRecipesFromMarkor):
   """Harder add recipe task, that involves navigating a large text file."""
 
   complexity = 4
@@ -613,7 +614,7 @@ class RecipeAddMultipleRecipesFromMarkor3(RecipeAddMultipleRecipesFromMarkor):
         'prep_time': prep_time,
     }
 
-class RecipeAddMultipleRecipesFromMarkor4(RecipeAddMultipleRecipesFromMarkor):
+class RecipeAddMultipleRecipesFromMarkorAndGallery4(RecipeAddMultipleRecipesFromMarkor):
   """Harder add recipe task, that involves navigating a large text file."""
 
   complexity = 4
@@ -672,7 +673,7 @@ class RecipeAddMultipleRecipesFromMarkor4(RecipeAddMultipleRecipesFromMarkor):
         'prep_time': prep_time,
     }
 
-class RecipeAddMultipleRecipesFromMarkor5(RecipeAddMultipleRecipesFromMarkor):
+class RecipeAddMultipleRecipesFromMarkorAndGallery5(RecipeAddMultipleRecipesFromMarkor):
   """Harder add recipe task, that involves navigating a large text file."""
 
   complexity = 4
@@ -731,300 +732,6 @@ class RecipeAddMultipleRecipesFromMarkor5(RecipeAddMultipleRecipesFromMarkor):
         'prep_time': prep_time,
     }
 
-class RecipeAddMultipleRecipesFromMarkor6(RecipeAddMultipleRecipesFromMarkor):
-  """Harder add recipe task, that involves navigating a large text file."""
-
-  complexity = 4
-  n_rows = 3
-  n_rows_noise = 30
-
-  @property
-  def goal(self) -> str:
-    prep_time = self.params['prep_time']
-    return (
-        f'Add the recipes from recipes.txt in Markor that take {prep_time} to '
-        'prepare into the Broccoli recipe app.'
-    )
-
-  def initialize_task(self, env: interface.AsyncEnv):
-    super().initialize_task(env)
-    rows = (
-        self.params[sqlite_validators.ROW_OBJECTS]
-        + self.params[sqlite_validators.NOISE_ROW_OBJECTS]
-    )
-    random.shuffle(rows)
-    file_utils.clear_directory(device_constants.MARKOR_DATA, env.base_env)
-    user_data_generation.write_to_markor(
-        _get_rows_as_text(
-            rows,
-            self.params[_TEXT_REPRESENTATION_TYPE],
-        ),
-        'recipes.txt',
-        env,
-    )
-
-  def tear_down(self, env: interface.AsyncEnv):
-    super().tear_down(env)
-    file_utils.clear_directory(device_constants.MARKOR_DATA, env.base_env)
-
-  @classmethod
-  def generate_random_params(cls) -> dict[str, Any]:
-    """Generate random parameters for an add recipe task."""
-    prep_time = random.choice(_PREP_TIME_OPTIONS)
-    target_rows = sqlite_schema_utils.get_random_items(
-        cls.n_rows,
-        _generate_random_recipe,
-        replacement=False,
-        filter_fn=lambda r: r.preparationTime == prep_time,
-    )
-    noise_rows = sqlite_schema_utils.get_random_items(
-        cls.n_rows_noise,
-        _generate_random_recipe,
-        replacement=False,
-        filter_fn=lambda r: r.preparationTime != prep_time,
-    )
-    return {
-        sqlite_validators.ROW_OBJECTS: target_rows,
-        sqlite_validators.NOISE_ROW_OBJECTS: noise_rows,
-        _TEXT_REPRESENTATION_TYPE: random.choice(['csv', 'text_block']),
-        'prep_time': prep_time,
-    }
-
-class RecipeAddMultipleRecipesFromMarkor7(RecipeAddMultipleRecipesFromMarkor):
-  """Harder add recipe task, that involves navigating a large text file."""
-
-  complexity = 4
-  n_rows = 3
-  n_rows_noise = 35
-  @property
-  def goal(self) -> str:
-    prep_time = self.params['prep_time']
-    return (
-        f'Add the recipes from recipes.txt in Markor that take {prep_time} to '
-        'prepare into the Broccoli recipe app.'
-    )
-
-  def initialize_task(self, env: interface.AsyncEnv):
-    super().initialize_task(env)
-    rows = (
-        self.params[sqlite_validators.ROW_OBJECTS]
-        + self.params[sqlite_validators.NOISE_ROW_OBJECTS]
-    )
-    random.shuffle(rows)
-    file_utils.clear_directory(device_constants.MARKOR_DATA, env.base_env)
-    user_data_generation.write_to_markor(
-        _get_rows_as_text(
-            rows,
-            self.params[_TEXT_REPRESENTATION_TYPE],
-        ),
-        'recipes.txt',
-        env,
-    )
-
-  def tear_down(self, env: interface.AsyncEnv):
-    super().tear_down(env)
-    file_utils.clear_directory(device_constants.MARKOR_DATA, env.base_env)
-
-  @classmethod
-  def generate_random_params(cls) -> dict[str, Any]:
-    """Generate random parameters for an add recipe task."""
-    prep_time = random.choice(_PREP_TIME_OPTIONS)
-    target_rows = sqlite_schema_utils.get_random_items(
-        cls.n_rows,
-        _generate_random_recipe,
-        replacement=False,
-        filter_fn=lambda r: r.preparationTime == prep_time,
-    )
-    noise_rows = sqlite_schema_utils.get_random_items(
-        cls.n_rows_noise,
-        _generate_random_recipe,
-        replacement=False,
-        filter_fn=lambda r: r.preparationTime != prep_time,
-    )
-    return {
-        sqlite_validators.ROW_OBJECTS: target_rows,
-        sqlite_validators.NOISE_ROW_OBJECTS: noise_rows,
-        _TEXT_REPRESENTATION_TYPE: random.choice(['csv', 'text_block']),
-        'prep_time': prep_time,
-    }
-
-class RecipeAddMultipleRecipesFromMarkor8(RecipeAddMultipleRecipesFromMarkor):
-  """Harder add recipe task, that involves navigating a large text file."""
-
-  complexity = 4
-  n_rows = 3
-  n_rows_noise =40
-
-  @property
-  def goal(self) -> str:
-    prep_time = self.params['prep_time']
-    return (
-        f'Add the recipes from recipes.txt in Markor that take {prep_time} to '
-        'prepare into the Broccoli recipe app.'
-    )
-
-  def initialize_task(self, env: interface.AsyncEnv):
-    super().initialize_task(env)
-    rows = (
-        self.params[sqlite_validators.ROW_OBJECTS]
-        + self.params[sqlite_validators.NOISE_ROW_OBJECTS]
-    )
-    random.shuffle(rows)
-    file_utils.clear_directory(device_constants.MARKOR_DATA, env.base_env)
-    user_data_generation.write_to_markor(
-        _get_rows_as_text(
-            rows,
-            self.params[_TEXT_REPRESENTATION_TYPE],
-        ),
-        'recipes.txt',
-        env,
-    )
-
-  def tear_down(self, env: interface.AsyncEnv):
-    super().tear_down(env)
-    file_utils.clear_directory(device_constants.MARKOR_DATA, env.base_env)
-
-  @classmethod
-  def generate_random_params(cls) -> dict[str, Any]:
-    """Generate random parameters for an add recipe task."""
-    prep_time = random.choice(_PREP_TIME_OPTIONS)
-    target_rows = sqlite_schema_utils.get_random_items(
-        cls.n_rows,
-        _generate_random_recipe,
-        replacement=False,
-        filter_fn=lambda r: r.preparationTime == prep_time,
-    )
-    noise_rows = sqlite_schema_utils.get_random_items(
-        cls.n_rows_noise,
-        _generate_random_recipe,
-        replacement=False,
-        filter_fn=lambda r: r.preparationTime != prep_time,
-    )
-    return {
-        sqlite_validators.ROW_OBJECTS: target_rows,
-        sqlite_validators.NOISE_ROW_OBJECTS: noise_rows,
-        _TEXT_REPRESENTATION_TYPE: random.choice(['csv', 'text_block']),
-        'prep_time': prep_time,
-    }
-
-class RecipeAddMultipleRecipesFromMarkor9(RecipeAddMultipleRecipesFromMarkor):
-  """Harder add recipe task, that involves navigating a large text file."""
-
-  complexity = 4
-  n_rows = 3
-  n_rows_noise = 45
-  @property
-  def goal(self) -> str:
-    prep_time = self.params['prep_time']
-    return (
-        f'Add the recipes from recipes.txt in Markor that take {prep_time} to '
-        'prepare into the Broccoli recipe app.'
-    )
-
-  def initialize_task(self, env: interface.AsyncEnv):
-    super().initialize_task(env)
-    rows = (
-        self.params[sqlite_validators.ROW_OBJECTS]
-        + self.params[sqlite_validators.NOISE_ROW_OBJECTS]
-    )
-    random.shuffle(rows)
-    file_utils.clear_directory(device_constants.MARKOR_DATA, env.base_env)
-    user_data_generation.write_to_markor(
-        _get_rows_as_text(
-            rows,
-            self.params[_TEXT_REPRESENTATION_TYPE],
-        ),
-        'recipes.txt',
-        env,
-    )
-
-  def tear_down(self, env: interface.AsyncEnv):
-    super().tear_down(env)
-    file_utils.clear_directory(device_constants.MARKOR_DATA, env.base_env)
-
-  @classmethod
-  def generate_random_params(cls) -> dict[str, Any]:
-    """Generate random parameters for an add recipe task."""
-    prep_time = random.choice(_PREP_TIME_OPTIONS)
-    target_rows = sqlite_schema_utils.get_random_items(
-        cls.n_rows,
-        _generate_random_recipe,
-        replacement=False,
-        filter_fn=lambda r: r.preparationTime == prep_time,
-    )
-    noise_rows = sqlite_schema_utils.get_random_items(
-        cls.n_rows_noise,
-        _generate_random_recipe,
-        replacement=False,
-        filter_fn=lambda r: r.preparationTime != prep_time,
-    )
-    return {
-        sqlite_validators.ROW_OBJECTS: target_rows,
-        sqlite_validators.NOISE_ROW_OBJECTS: noise_rows,
-        _TEXT_REPRESENTATION_TYPE: random.choice(['csv', 'text_block']),
-        'prep_time': prep_time,
-    }
-
-class RecipeAddMultipleRecipesFromMarkor10(RecipeAddMultipleRecipesFromMarkor):
-  """Harder add recipe task, that involves navigating a large text file."""
-
-  complexity = 4
-  n_rows = 3
-  n_rows_noise = 50
-
-  @property
-  def goal(self) -> str:
-    prep_time = self.params['prep_time']
-    return (
-        f'Add the recipes from recipes.txt in Markor that take {prep_time} to '
-        'prepare into the Broccoli recipe app.'
-    )
-
-  def initialize_task(self, env: interface.AsyncEnv):
-    super().initialize_task(env)
-    rows = (
-        self.params[sqlite_validators.ROW_OBJECTS]
-        + self.params[sqlite_validators.NOISE_ROW_OBJECTS]
-    )
-    random.shuffle(rows)
-    file_utils.clear_directory(device_constants.MARKOR_DATA, env.base_env)
-    user_data_generation.write_to_markor(
-        _get_rows_as_text(
-            rows,
-            self.params[_TEXT_REPRESENTATION_TYPE],
-        ),
-        'recipes.txt',
-        env,
-    )
-
-  def tear_down(self, env: interface.AsyncEnv):
-    super().tear_down(env)
-    file_utils.clear_directory(device_constants.MARKOR_DATA, env.base_env)
-
-  @classmethod
-  def generate_random_params(cls) -> dict[str, Any]:
-    """Generate random parameters for an add recipe task."""
-    prep_time = random.choice(_PREP_TIME_OPTIONS)
-    target_rows = sqlite_schema_utils.get_random_items(
-        cls.n_rows,
-        _generate_random_recipe,
-        replacement=False,
-        filter_fn=lambda r: r.preparationTime == prep_time,
-    )
-    noise_rows = sqlite_schema_utils.get_random_items(
-        cls.n_rows_noise,
-        _generate_random_recipe,
-        replacement=False,
-        filter_fn=lambda r: r.preparationTime != prep_time,
-    )
-    return {
-        sqlite_validators.ROW_OBJECTS: target_rows,
-        sqlite_validators.NOISE_ROW_OBJECTS: noise_rows,
-        _TEXT_REPRESENTATION_TYPE: random.choice(['csv', 'text_block']),
-        'prep_time': prep_time,
-    }
-
-
 class RecipeAddMultipleRecipesFromImage(_RecipeAddMultipleRecipes):
   """Task to add multiple recipes from an image file to Broccoli Recipe App."""
 
@@ -1053,7 +760,7 @@ class RecipeAddMultipleRecipesFromImage(_RecipeAddMultipleRecipes):
     user_data_generation.clear_device_storage(env)
 
 #### Utility functions used for generating recipes #############################
-class RecipeAddMultipleRecipesFromImage2(_RecipeAddMultipleRecipes):
+class RecipeAddMultipleRecipesFromImageAndGallery2(_RecipeAddMultipleRecipes):
   """Task to add multiple recipes from an image file to Broccoli Recipe App."""
 
   app_names = (_APP_NAME, 'simple gallery pro')
@@ -1080,7 +787,7 @@ class RecipeAddMultipleRecipesFromImage2(_RecipeAddMultipleRecipes):
     super().tear_down(env)
     user_data_generation.clear_device_storage(env)
 
-class RecipeAddMultipleRecipesFromImage3(_RecipeAddMultipleRecipes):
+class RecipeAddMultipleRecipesFromImageAndGallery3(_RecipeAddMultipleRecipes):
   """Task to add multiple recipes from an image file to Broccoli Recipe App."""
 
   app_names = (_APP_NAME, 'simple gallery pro')
@@ -1108,7 +815,7 @@ class RecipeAddMultipleRecipesFromImage3(_RecipeAddMultipleRecipes):
     user_data_generation.clear_device_storage(env)
 
 
-class RecipeAddMultipleRecipesFromImage4(_RecipeAddMultipleRecipes):
+class RecipeAddMultipleRecipesFromImageAndGallery4(_RecipeAddMultipleRecipes):
   """Task to add multiple recipes from an image file to Broccoli Recipe App."""
 
   app_names = (_APP_NAME, 'simple gallery pro')
@@ -1135,7 +842,7 @@ class RecipeAddMultipleRecipesFromImage4(_RecipeAddMultipleRecipes):
     super().tear_down(env)
     user_data_generation.clear_device_storage(env)
 
-class RecipeAddMultipleRecipesFromImage5(_RecipeAddMultipleRecipes):
+class RecipeAddMultipleRecipesFromImageAndGallery5(_RecipeAddMultipleRecipes):
   """Task to add multiple recipes from an image file to Broccoli Recipe App."""
 
   app_names = (_APP_NAME, 'simple gallery pro')
@@ -1162,140 +869,6 @@ class RecipeAddMultipleRecipesFromImage5(_RecipeAddMultipleRecipes):
     super().tear_down(env)
     user_data_generation.clear_device_storage(env)
 
-class RecipeAddMultipleRecipesFromImage6(_RecipeAddMultipleRecipes):
-  """Task to add multiple recipes from an image file to Broccoli Recipe App."""
-
-  app_names = (_APP_NAME, 'simple gallery pro')
-  complexity = 4
-  n_rows = 3
-  n_rows_noise = 26
-
-  @property
-  def goal(self) -> str:
-    return (
-        'Add the recipes from recipes.jpg in Simple Gallery Pro to the Broccoli'
-        ' recipe app.'
-    )
-
-  def initialize_task(self, env: interface.AsyncEnv):
-    super().initialize_task(env)
-    user_data_generation.clear_device_storage(env)
-    data = _get_rows_as_text(
-        self.params[sqlite_validators.ROW_OBJECTS], 'text_block', wrap_width=60
-    )
-    user_data_generation.write_to_gallery(data, 'recipes.jpg', env)
-
-  def tear_down(self, env: interface.AsyncEnv):
-    super().tear_down(env)
-    user_data_generation.clear_device_storage(env)
-
-class RecipeAddMultipleRecipesFromImage7(_RecipeAddMultipleRecipes):
-  """Task to add multiple recipes from an image file to Broccoli Recipe App."""
-
-  app_names = (_APP_NAME, 'simple gallery pro')
-  complexity = 4
-  n_rows = 3
-  n_rows_noise = 28
-
-  @property
-  def goal(self) -> str:
-    return (
-        'Add the recipes from recipes.jpg in Simple Gallery Pro to the Broccoli'
-        ' recipe app.'
-    )
-
-  def initialize_task(self, env: interface.AsyncEnv):
-    super().initialize_task(env)
-    user_data_generation.clear_device_storage(env)
-    data = _get_rows_as_text(
-        self.params[sqlite_validators.ROW_OBJECTS], 'text_block', wrap_width=60
-    )
-    user_data_generation.write_to_gallery(data, 'recipes.jpg', env)
-
-  def tear_down(self, env: interface.AsyncEnv):
-    super().tear_down(env)
-    user_data_generation.clear_device_storage(env)
-
-class RecipeAddMultipleRecipesFromImage8(_RecipeAddMultipleRecipes):
-  """Task to add multiple recipes from an image file to Broccoli Recipe App."""
-
-  app_names = (_APP_NAME, 'simple gallery pro')
-  complexity = 4
-  n_rows = 3
-  n_rows_noise = 30
-
-  @property
-  def goal(self) -> str:
-    return (
-        'Add the recipes from recipes.jpg in Simple Gallery Pro to the Broccoli'
-        ' recipe app.'
-    )
-
-  def initialize_task(self, env: interface.AsyncEnv):
-    super().initialize_task(env)
-    user_data_generation.clear_device_storage(env)
-    data = _get_rows_as_text(
-        self.params[sqlite_validators.ROW_OBJECTS], 'text_block', wrap_width=60
-    )
-    user_data_generation.write_to_gallery(data, 'recipes.jpg', env)
-
-  def tear_down(self, env: interface.AsyncEnv):
-    super().tear_down(env)
-    user_data_generation.clear_device_storage(env)
-
-class RecipeAddMultipleRecipesFromImage9(_RecipeAddMultipleRecipes):
-  """Task to add multiple recipes from an image file to Broccoli Recipe App."""
-
-  app_names = (_APP_NAME, 'simple gallery pro')
-  complexity = 4
-  n_rows = 3
-  n_rows_noise = 32
-
-  @property
-  def goal(self) -> str:
-    return (
-        'Add the recipes from recipes.jpg in Simple Gallery Pro to the Broccoli'
-        ' recipe app.'
-    )
-
-  def initialize_task(self, env: interface.AsyncEnv):
-    super().initialize_task(env)
-    user_data_generation.clear_device_storage(env)
-    data = _get_rows_as_text(
-        self.params[sqlite_validators.ROW_OBJECTS], 'text_block', wrap_width=60
-    )
-    user_data_generation.write_to_gallery(data, 'recipes.jpg', env)
-
-  def tear_down(self, env: interface.AsyncEnv):
-    super().tear_down(env)
-    user_data_generation.clear_device_storage(env)
-
-class RecipeAddMultipleRecipesFromImage10(_RecipeAddMultipleRecipes):
-  """Task to add multiple recipes from an image file to Broccoli Recipe App."""
-
-  app_names = (_APP_NAME, 'simple gallery pro')
-  complexity = 4
-  n_rows = 3
-  n_rows_noise = 34
-
-  @property
-  def goal(self) -> str:
-    return (
-        'Add the recipes from recipes.jpg in Simple Gallery Pro to the Broccoli'
-        ' recipe app.'
-    )
-
-  def initialize_task(self, env: interface.AsyncEnv):
-    super().initialize_task(env)
-    user_data_generation.clear_device_storage(env)
-    data = _get_rows_as_text(
-        self.params[sqlite_validators.ROW_OBJECTS], 'text_block', wrap_width=60
-    )
-    user_data_generation.write_to_gallery(data, 'recipes.jpg', env)
-
-  def tear_down(self, env: interface.AsyncEnv):
-    super().tear_down(env)
-    user_data_generation.clear_device_storage(env)
 def _generate_random_recipe() -> sqlite_schema_utils.Recipe:
   """Generates a random recipe."""
 

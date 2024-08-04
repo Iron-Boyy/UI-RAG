@@ -236,6 +236,51 @@ class OsmAndFavorite(_OsmTaskEval):
     return {'location': _random_location_str()[0]}
 
 
+class OsmAndFavorite2(_OsmTaskEval):
+  """Task for checking that there is a favorite location marker in OsmAnd."""
+
+  complexity = 1
+  schema = {
+      'type': 'object',
+      'properties': {
+          'location': {'type': 'string'},
+      },
+      'required': [
+          'location',
+      ],
+  }
+  template = (
+      'Add a favorite location marker for {location} in the OsmAnd maps app.'
+  )
+
+  def initialize_task(self, env: interface.AsyncEnv) -> None:
+    """Initializes the task environment."""
+    super().initialize_task(env)
+    _clear_favorites(env.base_env)
+
+  def is_successful(self, env: interface.AsyncEnv) -> float:
+    if not file_utils.check_file_exists(_FAVORITES_PATH, env.base_env):
+      logging.warning('Favorites file %s not found.', _FAVORITES_PATH)
+      return 0.0
+    with file_utils.tmp_file_from_device(
+        _FAVORITES_PATH, env.base_env
+    ) as favorites_file:
+      if _favorites_contains(
+          ElementTree.parse(favorites_file).getroot(), self.params['location']
+      ):
+        return super().is_successful(env)
+    return 0.0
+
+  def tear_down(self, env: interface.AsyncEnv):
+    """Cleans up after task completion."""
+    _clear_favorites(env.base_env)
+    super().tear_down(env)
+
+  @classmethod
+  def generate_random_params(cls) -> dict[str, Any]:
+    return {'location': _random_location_str()[0]}
+
+
 def _marker_matches_location(
     marker: sqlite_schema_utils.OsmAndMapMarker,
     location: str,
@@ -265,6 +310,37 @@ def _marker_matches_location(
 
 
 class OsmAndMarker(_OsmTaskEval, sqlite_validators.SQLiteApp):
+  """Task for checking that there is a marker in OsmAnd."""
+
+  db_path = '/data/data/net.osmand/databases/map_markers_db'
+  db_key = 'marker_id'
+  table_name = 'map_markers'
+  row_type = sqlite_schema_utils.OsmAndMapMarker
+  app_name_with_db = 'osmand'
+  complexity = 1
+  schema = {
+      'type': 'object',
+      'properties': {
+          'location': {'type': 'string'},
+      },
+      'required': [
+          'location',
+      ],
+  }
+  template = 'Add a location marker for {location} in the OsmAnd maps app.'
+
+  def is_successful(self, env: interface.AsyncEnv) -> float:
+    for row in self.list_rows(env.base_env):
+      if _marker_matches_location(row, self.params['location']):
+        return super().is_successful(env)
+    return 0.0
+
+  @classmethod
+  def generate_random_params(cls) -> dict[str, Any]:
+    return {'location': _random_location_str()[0]}
+
+
+class OsmAndMarker2(_OsmTaskEval, sqlite_validators.SQLiteApp):
   """Task for checking that there is a marker in OsmAnd."""
 
   db_path = '/data/data/net.osmand/databases/map_markers_db'
@@ -372,6 +448,71 @@ def _track_points(
 
 
 class OsmAndTrack(_OsmTaskEval):
+  """Task for checking for a track with specified waypoints saved in OsmAnd."""
+
+  complexity = 1
+  schema = {
+      'type': 'object',
+      'properties': {
+          'waypoints': {
+              'type': 'array',
+              'items': {'type': 'string'},
+          },
+      },
+      'required': ['waypoints'],
+  }
+
+  @property
+  def goal(self) -> str:
+    waypoints = self.params['waypoints']
+    if len(waypoints) < 2:
+      raise ValueError(
+          'Waypoints parameter must contain at least two locations.'
+      )
+    waypoints = ', '.join(self.params['waypoints'])
+    return (
+        f'Save a track with waypoints {waypoints} in the'
+        ' OsmAnd maps app in the same order as listed.'
+    )
+
+  def initialize_task(self, env: interface.AsyncEnv) -> None:
+    """Initializes the task environment."""
+    super().initialize_task(env)
+    _clear_tracks(env.base_env)
+    self._target_waypoint_coords = _lookup_target_waypoints(
+        self.params['waypoints']
+    )
+
+  def is_successful(self, env: interface.AsyncEnv) -> float:
+    with file_utils.tmp_directory_from_device(
+        os.path.join(_DEVICE_FILES, 'tracks'), env.base_env
+    ) as tracks_directory:
+      for track_file in os.listdir(tracks_directory):
+        if _track_matches(
+            _track_points(
+                ElementTree.parse(
+                    os.path.join(tracks_directory, track_file)
+                ).getroot()
+            ),
+            self._target_waypoint_coords,
+        ):
+          return super().is_successful(env)
+    return 0.0
+
+  def tear_down(self, env: interface.AsyncEnv):
+    """Cleans up after task completion."""
+    _clear_tracks(env.base_env)
+    super().tear_down(env)
+
+  @classmethod
+  def generate_random_params(cls) -> dict[str, Any]:
+    waypoints = _random_location_str(
+        names_only=True, num_locations=random.randint(2, 4)
+    )
+    track_name = f'{waypoints[0]} to {waypoints[-1]}'
+    return {'track_name': track_name, 'waypoints': waypoints}
+
+class OsmAndTrack2(_OsmTaskEval):
   """Task for checking for a track with specified waypoints saved in OsmAnd."""
 
   complexity = 1

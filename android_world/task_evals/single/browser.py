@@ -16,6 +16,7 @@
 
 import os
 import random
+import subprocess
 from typing import Any
 from android_world.env import adb_utils
 from android_world.env import device_constants
@@ -41,7 +42,7 @@ class _BrowserTask(task_eval.TaskEval):
   HTML = ''  # Implementation overrides.
 
   preamble = (
-      'Open the file task.html in Downloads in the file manager; when prompted'
+      'Open the file task.html in Downloads in the files; when prompted'
       ' open it with Chrome.'
   )
 
@@ -667,3 +668,34 @@ class BrowserDraw(_BrowserTask):
 </body>
 </html>
 """
+
+class BrowserOpen(task_eval.TaskEval):
+    """Task for opening chrome."""
+    app_names = ("chrome",)
+    complexity = 1
+    schema = {}
+    template = (
+        "Open Chrome App"
+    )
+
+    def is_successful(self, env: interface.AsyncEnv) -> float:
+        super().is_successful(env)
+        adb_command = "adb shell dumpsys window windows"
+        result = subprocess.run(adb_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        # print(result)
+        result = result.stdout.split('    ')
+        for i in range(len(result)):
+            if len(result[i]) > len("mActivityRecord") and result[i][:len("mActivityRecord")] == "mActivityRecord":
+                print(result[i])
+                part = result[i].split(" ")[2].split('/')
+                if part[0] == "om.android.chrome":
+                    return 1
+                else:
+                    return 0
+
+
+
+    @classmethod
+    def generate_random_params(cls) -> dict[str, str | int]:
+        return {}
+

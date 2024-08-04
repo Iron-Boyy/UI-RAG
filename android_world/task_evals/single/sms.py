@@ -16,15 +16,46 @@
 
 import random
 import time
+import subprocess
+
 from android_world.env import adb_utils
 from android_world.env import interface
 from android_world.env import tools
+from android_world.task_evals import task_eval
 from android_world.task_evals.common_validators import phone_validators
 from android_world.task_evals.common_validators import sms_validators
 from android_world.task_evals.utils import user_data_generation
 from android_world.utils import contacts_utils
 
+class SmsOpen(task_eval.TaskEval):
+    """Task for opening Contacts."""
+    app_names = ("sms",)
+    complexity = 1
+    schema = {}
+    template = (
+        "Open sms App"
+    )
 
+    def is_successful(self, env: interface.AsyncEnv) -> float:
+        super().is_successful(env)
+        adb_command = "adb shell dumpsys window windows"
+        result = subprocess.run(adb_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        # print(result)
+        result = result.stdout.split('    ')
+        for i in range(len(result)):
+            if len(result[i]) > len("mActivityRecord") and result[i][:len("mActivityRecord")] == "mActivityRecord":
+                print(result[i])
+                part=result[i].split(" ")[2].split('/')
+                if part[0]== "com.google.android.sms":
+                    return 1
+                else:
+                    return 0
+
+
+
+    @classmethod
+    def generate_random_params(cls) -> dict[str, str | int]:
+        return {}
 class SimpleSmsSend(sms_validators.SimpleSMSSendSms):
   """Task for checking an SMS was sent."""
 

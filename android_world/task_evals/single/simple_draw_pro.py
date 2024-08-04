@@ -16,6 +16,7 @@
 
 import os
 import random
+import subprocess
 from typing import Any
 from android_world.env import device_constants
 from android_world.env import interface
@@ -54,6 +55,65 @@ class SimpleDrawProCreateDrawing(task_eval.TaskEval):
         file_name, self.create_file_task.data_directory, env.base_env
     )
     return 1.0 if exists else 0.0
+
+  @classmethod
+  def generate_random_params(cls) -> dict[str, str | int]:
+    words = [
+        "lorem",
+        "ipsum",
+        "dolor",
+        "sit",
+        "amet",
+        "consectetur",
+        "adipiscing",
+        "elit",
+    ]
+    extensions = [".png", ".svg", ".jpg"]
+    random_file_name = (
+        "".join(random.choices(words, k=1))
+        + "_"
+        + user_data_generation.generate_random_file_name()
+        + random.choice(extensions)
+    )
+
+    return {
+        "file_name": random_file_name,
+        "text": "",  # Unused.
+    }
+
+  def tear_down(self, env: interface.AsyncEnv) -> None:
+    super().tear_down(env)
+    self.create_file_task.tear_down(env)
+
+class SimpleDrawProOpen(task_eval.TaskEval):
+  """Task for checking that a new drawing has been created with a specific name."""
+
+  app_names = ("simple draw pro",)
+  complexity = 1
+  schema = {}
+  template = (
+      "Open draw App"
+  )
+
+  def is_successful(self, env: interface.AsyncEnv) -> float:
+      super().is_successful(env)
+      adb_command = "adb shell dumpsys window windows"
+      result = subprocess.run(adb_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+      # print(result)
+      result = result.stdout.split('    ')
+
+      for i in range(len(result)):
+          if len(result[i]) > len("mActivityRecord") and result[i][:len("mActivityRecord")] == "mActivityRecord":
+              print(result[i])
+              part = result[i].split(" ")[2].split('/')
+              if part[0] == "com.google.android.draw":
+                  return 1
+              else:
+                  return 0
+
+  @classmethod
+  def generate_random_params(cls) -> dict[str, str | int]:
+      return {}
 
   @classmethod
   def generate_random_params(cls) -> dict[str, str | int]:
