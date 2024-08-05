@@ -27,6 +27,12 @@ from PIL import Image
 import requests
 from .call_gpt import call_openai_completion_api
 
+import openai_proxy
+import os
+import base64
+
+from openai import AzureOpenAI
+
 
 ERROR_CALLING_LLM = 'Error calling LLM'
 
@@ -149,12 +155,12 @@ class Gpt4Wrapper(LlmWrapper, MultimodalLlmWrapper):
     model: GPT model to use based on if it is multimodal.
   """
 
-  RETRY_WAITING_SECONDS = 20
+  RETRY_WAITING_SECONDS = 5
 
   def __init__(
       self,
       model_name: str,
-      max_retry: int = 3,
+      max_retry: int = 600,
       temperature: float = 0.0,
   ):
     # if 'OPENAI_API_KEY' not in os.environ:
@@ -166,7 +172,8 @@ class Gpt4Wrapper(LlmWrapper, MultimodalLlmWrapper):
     if max_retry <= 0:
       max_retry = 3
       print('Max_retry must be positive. Reset it to 3')
-    self.max_retry = min(max_retry, 5)
+    self.max_retry = max_retry
+    # self.max_retry = min(max_retry, 5)
     self.temperature = temperature
     self.model = model_name
 
@@ -221,6 +228,30 @@ class Gpt4Wrapper(LlmWrapper, MultimodalLlmWrapper):
     while counter > 0:
       try:
         if self.model == "gpt-4o":
+          openai_proxy.generate.default_url = "http://api.schedule.mtc.sensetime.com:80"
+          my_key = "7846f1a233727507bda3aeef7cc19685"
+          client = openai_proxy.GptProxy(api_key=my_key)
+          rsp = client.generate(
+              messages=messages,
+              model="gpt-4o-2024-05-13-ptu",
+              transaction_id="lsch_test_0001", # 同样transaction_id将被归类到同一个任务，一起统计
+          )
+          # # print(rsp.json()['data']['response_content']['choices'][0]['message']['content'])
+          response = rsp.json()['data']['response_content']['choices'][0]['message']['content']
+          return response, rsp.json() 
+          # if rsp.ok:
+          #     print(rsp.json())
+          # else:
+          #     print(rsp.text)
+          # client = AzureOpenAI(
+          #     api_key="5b07980e7bc246fab4999a10f20f0668",
+          #     api_version="2024-02-15-preview",
+          #     azure_endpoint="https://mtcwestus3.openai.azure.com/"
+          # )
+          # response = client.chat.completions.create(
+          #     model="gpt-4o-2024-05-13-ptu",
+          #     messages=messages,
+          # )
           response = call_openai_completion_api(messages, self.model, **kwargs)
           return response[0]['content'].content, response
         else:
@@ -241,7 +272,7 @@ class Gpt4Wrapper(LlmWrapper, MultimodalLlmWrapper):
       except Exception as e:  # pylint: disable=broad-exception-caught
         # Want to catch all exceptions happened during LLM calls.
         time.sleep(wait_seconds)
-        wait_seconds *= 2
+        # wait_seconds *= 2
         counter -= 1
         print('Error calling LLM, will retry soon...')
         print(e)

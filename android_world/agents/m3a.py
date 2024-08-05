@@ -14,7 +14,7 @@
 
 """A Multimodal Autonomous Agent for Android (M3A)."""
 
-import time
+import time, os
 from android_world.agents import agent_utils
 from android_world.agents import base_agent
 from android_world.agents import infer
@@ -23,6 +23,10 @@ from android_world.env import adb_utils
 from android_world.env import interface
 from android_world.env import json_action
 from android_world.env import representation_utils
+
+from android_world.database import FileDatabase, DocumentDatabase, generate_md5_string, IndexDatabase
+from android_world.embedding import get_embedding, BgeEmbedding
+import tqdm
 
 PROMPT_PREFIX = (
     'You are an agent who can operate an Android phone on behalf of a user.'
@@ -101,8 +105,7 @@ GUIDANCE = (
     " it's already on), you can just complete the task.\n"
     'Action Related:\n'
     '- Use the `open_app` action whenever you want to open an app'
-    ' (nothing will happen if the app is not installed), do not use the'
-    ' app drawer to open an app unless all other ways have failed.\n'
+    ' (nothing will happen if the app is not installed).\n'
     '- Use the `input_text` action whenever you want to type'
     ' something (including password) instead of clicking characters on the'
     ' keyboard one by one. Sometimes there is some default text in the text'
@@ -161,9 +164,10 @@ ACTION_SELECTION_PROMPT_TEMPLATE = (
     ' interact with it, can try to scroll the screen to reveal it first),'
     ' the numeric indexes are'
     ' consistent with the ones in the labeled screenshot:\n{ui_elements}\n'
-    ' and the function of each UI element: \n{ui_function}\n'
     + GUIDANCE
     + '{additional_guidelines}'
+    +' Here is the functions of all the UI elements in the app:\n{ui_function}\n'
+    +' You should strictly decide your action basing on the function list above.'
     + '\nNow output an action from the above list in the correct JSON format,'
     ' following the reason why you do that. Your answer should look like:\n'
     'Reason: ...\nAction: {{"action_type":...}}\n\n'
@@ -193,7 +197,8 @@ SUMMARY_PROMPT_TEMPLATE = (
     ' what might be the reason (be critical, the action/reason might be'
     ' wrong), what should/should not be done next and so on. Some more'
     ' rules/tips you should follow:\n'
-    '- Keep it short (better less than 50 words) and in a single line\n'
+    # '- Keep it short (better less than 50 words) and in a single line\n'
+    '- Keep it detail (around 200 words)\n'
     "- Some actions (like `answer`, `wait`) don't involve screen change,"
     ' you can just assume they work as expected.\n'
     '- Given this summary will be added into action history, it can be used as'
@@ -229,7 +234,23 @@ def _generate_ui_element_description(
   Returns:
     The description for the UI element.
   """
-  element_description = f'UI element {index}: {{"index": {index}, '
+  if ui_element.resource_name:
+    if ui_element.text:
+        element_id = ui_element.resource_name+"."+ui_element.class_name+"."+ui_element.text
+    else:
+        if ui_element.content_description:
+            element_id = ui_element.resource_name+"."+ui_element.class_name+"."+ui_element.content_description
+        else:
+            element_id = ui_element.resource_name+"."+ui_element.class_name
+  else:
+    if ui_element.text:
+        element_id = ui_element.package_name+"."+ui_element.class_name+"."+ui_element.text
+    else:
+        if ui_element.content_description:
+            element_id = ui_element.package_name+"."+ui_element.class_name+"."+ui_element.content_description
+        else:
+            element_id = ui_element.package_name+"."+ui_element.class_name
+  element_description = f'UI element {element_id}: {{"index": {index}, '
   if ui_element.text:
     element_description += f'"text": "{ui_element.text}", '
   if ui_element.content_description:
@@ -349,6 +370,174 @@ def _summarize_prompt(
   )
 
 
+
+class DocumentRetrieval():
+    def __init__(self, dim, cache_dir = "./", emd_path="", override_db=False) -> None:
+        self.dim = dim
+        self.cache_dir = cache_dir
+        self.mkdir_if_not_exist(cache_dir)
+        self.override_db = override_db
+
+        self.doc_db = None
+        self.file_db = None
+        self.index_db = None
+
+        self.file_db = FileDatabase(db_path=os.path.join(self.cache_dir,"file_database.db"))
+
+        if emd_path != "":
+            self.emd_model = BgeEmbedding(emd_path)
+            self.get_embedding = self.emd_model.encode
+        else:
+            self.get_embedding = get_embedding
+
+    def mkdir_if_not_exist(self, path):
+        try:
+            os.makedirs(path)
+        except FileExistsError:
+            print("Directory already exists")
+
+    def init_database(self, db_name):
+        if os.path.exists(os.path.join(self.cache_dir,f"{db_name}_text.db")):
+            os.remove(os.path.join(self.cache_dir,f"{db_name}_text.db"))
+            os.remove(os.path.join(self.cache_dir,f"{db_name}_index.db"))
+        self.doc_db = DocumentDatabase(db_path=os.path.join(self.cache_dir,f"{db_name}_text.db"))
+        self.index_db = IndexDatabase(db_path=os.path.join(self.cache_dir,f"{db_name}_index.db"), dim=self.dim)
+
+    def _upload_document(self, file_path):
+        loader = PDFLoader()
+        ret = loader.load_document(doc_path=file_path)
+        if ret != 'Success':
+            raise Exception('Error loading document')
+        document_loaded = loader.extract_doc_content()       
+        loader.unload_document()
+
+        return document_loaded
+
+    def _split_document(self, document, chunk_size):
+        
+        chunk_list_all = []
+        total_content = ""
+        for page in document['doc_content']:
+            page_num = page['page_num']
+            page_content = page['page_content']
+            total_content += page_content
+            chunk_list = split_text_internal(page_content, chunk_size)
+
+            chunk_list_all.append((page_num,chunk_list))
+        
+        filesize = self.cal_filesize(total_content)
+
+        return chunk_list_all,filesize
+    
+    # def json2chunk(self, document):
+
+
+    
+
+    def cal_filesize(self, text):
+        return len(text.encode('utf-8'))
+
+
+    def add_document(self, file_dir, databasename,chunk_size = 2000):
+        self.init_database(databasename)
+        chunk_list_all = []
+        for i in range(len(file_dir)):
+            chunk_list = []
+            chunk_list.append(file_dir[i])
+            chunk_list_all.append((i,chunk_list))
+        
+        index = 0
+        for (page_num, chunks) in tqdm.tqdm(chunk_list_all):
+            for chunk in chunks:
+                embedding = self.get_embedding(chunk)
+                self.index_db.add(embedding,[index])
+                self.doc_db.add(index,chunk,"",page_num,commit=False)
+                index += 1
+        
+        self.index_db.save()
+        self.doc_db.commit()
+    
+
+    def del_document(self, file_path):
+        
+        filename = os.path.basename(file_path)
+        md5_name = generate_md5_string(filename)
+        
+        if self.file_db is None:
+            self.file_db = FileDatabase(db_path=os.path.join(self.cache_dir,"file_database.db"))
+
+        result = self.file_db.search_with_name(filename, return_info=['kbname'])
+
+        if result is None:
+            print("Document not found, return")
+        else:
+            _, kbname = result
+            kbname = [x[0] for x in kbname]
+            for _kbname in kbname:
+
+                if os.path.exists(os.path.join(self.cache_dir, f"{_kbname}_text.db")):
+                    os.remove(os.path.join(self.cache_dir, f"{_kbname}_text.db"))
+                if os.path.exists(os.path.join(self.cache_dir, f"{_kbname}_index.db")):
+                    os.remove(os.path.join(self.cache_dir, f"{_kbname}_index.db"))
+            self.file_db.delete_with_name(filename)
+
+    def search_document(self, query, top_k = 2, threshold=None):
+        base_embedding = self.get_embedding(query)
+
+        query_len = base_embedding.shape[0]
+        result = self.index_db.search(base_embedding, top_k)
+        
+        distances = result[0][0]
+        indexes = result[1][0]
+        result = [(x,y) for (x,y) in zip(distances, indexes)]
+        if threshold is not None:
+            result = [(x,y) for (x,y) in result if x >= threshold]
+
+        
+        retrieval_content_list = []
+        retrieval_page_list = []
+        retrieval_score_list = []
+        
+        for (distance, index) in result:
+            _, chunk_info = self.doc_db.search_with_vec_index(index, return_info=['chunk_content','page'])
+            if chunk_info.__len__() == 1:
+                chunk_info = [x for x in chunk_info[0]]
+
+                retrieval_content_list.append(chunk_info[0])
+                retrieval_page_list.append(chunk_info[1])
+                retrieval_score_list.append(distance)
+
+
+        return {
+            "content": retrieval_content_list,
+            "page": retrieval_page_list,
+            "score": retrieval_score_list
+        }
+    
+    
+
+    def template_with_qa(self, query, content_dict):
+
+        content_len = content_dict['content'].__len__()
+        content_list = "[no_ref]{}\n" * content_len
+        content_list_completed = content_list.format(*content_dict['content'])
+        max_score = max(content_dict['score'])
+
+        prompt = '''请参考以下知识回复用户最新的问题，参考程度为：{}，在生成时注明所引用的知识的角标，前缀为[no_ref]的知识无需注明。
+{}
+问题：{}
+'''
+        return prompt.format(max_score, content_list_completed, query)
+    
+
+    def search_related(self, query, top_k):
+
+        content_dict = self.search_document(query, top_k)
+        print(content_dict)
+
+        return content_dict['content']
+
+
 class M3A(base_agent.EnvironmentInteractingAgent):
   """M3A which stands for Multimodal Autonomous Agent for Android."""
 
@@ -372,6 +561,7 @@ class M3A(base_agent.EnvironmentInteractingAgent):
     self.llm = llm
     self.history = []
     self.additional_guidelines = None
+    self.observation_output = ""
 
   def set_task_guidelines(self, task_guidelines: list[str]) -> None:
     self.additional_guidelines = task_guidelines
@@ -421,8 +611,36 @@ class M3A(base_agent.EnvironmentInteractingAgent):
         )
     step_data['before_screenshot_with_som'] = before_screenshot.copy()
 
+    if len(self.history) == 0:
 
-    observation_output="None"
+      databasename = "appdatabase"
+      db_sys = DocumentRetrieval(384, emd_path="/home/SENSETIME/luozhihao/code/android_world/bge-small-en-v1.5", override_db=True)
+      app_introduction_path = "/home/SENSETIME/luozhihao/code/AppAgent/apps/introduction"
+      app_introduction_dir = os.listdir(app_introduction_path)
+      introduction = []
+      for file in app_introduction_dir:
+        with open(os.path.join(app_introduction_path, file), "r") as w:
+          introduction_content = w.read()
+        introduction.append(file.split("_")[0]+":"+introduction_content)
+      db_sys.add_document(introduction, databasename, chunk_size=200)
+
+      documention= db_sys.search_related(goal, 2)
+
+      ui_doc = ""
+      for i in range(len(documention)):
+        app_name = documention[i].split(":")[0]
+        app_folder_path = os.path.join("/home/SENSETIME/luozhihao/code/AppAgent/apps",app_name.replace(" ","*"))
+        app_ui_path = os.path.join(app_folder_path,app_name+".txt")
+        with open(app_ui_path, "r") as w:
+          doc_content = w.read()
+        ui_doc+=app_name+":\n"+doc_content+"\n\n"
+
+      print(ui_doc)
+      
+
+
+      self.observation_output=ui_doc
+      # self.observation_output="None"
     # if len(self.history)!=0:
     #   observation_prompt = OBSERVER_PROMPT
     #   # .format(
@@ -447,7 +665,7 @@ class M3A(base_agent.EnvironmentInteractingAgent):
             for i, step_info in enumerate(self.history)
         ],
         before_ui_elements_list,
-        observation_output,
+        self.observation_output,
         self.additional_guidelines,
     )
     step_data['action_prompt'] = action_prompt

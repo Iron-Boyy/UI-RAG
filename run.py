@@ -203,9 +203,6 @@ def _main() -> None:
 
   n_task_combinations = _N_TASK_COMBINATIONS.value
   task_registry = registry.TaskRegistry()
-  print(111)
-  print(task_registry)
-  print(111)
   suite = suite_utils.create_suite(
       task_registry.get_registry(family=_SUITE_FAMILY.value),
       n_task_combinations=n_task_combinations,
