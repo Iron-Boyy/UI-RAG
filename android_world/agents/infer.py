@@ -155,7 +155,7 @@ class Gpt4Wrapper(LlmWrapper, MultimodalLlmWrapper):
     model: GPT model to use based on if it is multimodal.
   """
 
-  RETRY_WAITING_SECONDS = 5
+  RETRY_WAITING_SECONDS = 1
 
   def __init__(
       self,

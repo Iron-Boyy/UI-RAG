@@ -1028,6 +1028,13 @@ class TaskRegistry:
       Markor_camera_audio.MarkorChangeNoteContentAndCameraTakePhotosAndAudiorecorder,
       Markor_camera_audio.MarkorAddNoteHeaderAndCameraTakePhotosAndAudiorecorder,
       Markor_camera_audio.MarkorEditNoteAndCameraTakePhotosAndAudiorecorder,
+      phone.MarkorCallApartment,
+      phone.PhoneAnswerCall,
+      phone.PhoneCallTextSender,
+      phone.PhoneMakeCall,
+      phone.PhoneRedialNumber,
+      phone.PhoneReturnMissedCall,
+      sms.SimpleSmsSendAfterCall,
 
 
 

@@ -335,7 +335,7 @@ class CameraOpen(_Camera):
             if len(result[i]) > len("mActivityRecord") and result[i][:len("mActivityRecord")] == "mActivityRecord":
                 print(result[i])
                 part = result[i].split(" ")[2].split('/')
-                if part[0] == "om.android.camera2":
+                if part[0] == "com.android.camera2":
                     return 1
                 else:
                     return 0

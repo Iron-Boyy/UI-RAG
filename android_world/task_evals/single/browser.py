@@ -688,7 +688,7 @@ class BrowserOpen(task_eval.TaskEval):
             if len(result[i]) > len("mActivityRecord") and result[i][:len("mActivityRecord")] == "mActivityRecord":
                 print(result[i])
                 part = result[i].split(" ")[2].split('/')
-                if part[0] == "om.android.chrome":
+                if part[0] == "com.android.chrome":
                     return 1
                 else:
                     return 0

@@ -101,7 +101,7 @@ class SimpleCalendarOpen(_SimpleCalendar):
         for i in range(len(result)):
             if len(result[i]) > len("mActivityRecord") and result[i][:len("mActivityRecord")] == "mActivityRecord":
                 print(result[i])
-                if result[i].split(" ")[2] == "ccom.simplemobiletools.calendar.pro/.activities.MainActivity}":
+                if result[i].split(" ")[2] == "com.simplemobiletools.calendar.pro/.activities.MainActivity}":
                     return 1
                 else:
                     return 0

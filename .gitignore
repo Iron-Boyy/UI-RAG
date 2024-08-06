@@ -11,6 +11,9 @@ _pycache__/
 build/
 dist/
 poetry.lock
+bge-small-en-v1.5/
+RetrievalSystem/
+assets/
 
 # Tests
 .pytest_cache/
@@ -20,6 +23,7 @@ poetry.lock
 
 # Other
 *.DS_Store
+*.db
 
 # PyCharm
 .idea

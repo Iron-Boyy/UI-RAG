@@ -86,7 +86,7 @@ class ExpenseOpen(_Expense):
             if len(result[i]) > len("mActivityRecord") and result[i][:len("mActivityRecord")] == "mActivityRecord":
                 print(result[i])
                 part = result[i].split(" ")[2].split('/')
-                if part[0] == "om.android.expense":
+                if part[0] == "com.android.expense":
                     return 1
                 else:
                     return 0
