@@ -1,2 +1,0 @@
-from .inference_small import get_embedding
-from .inference_small_local import BgeEmbedding
