@@ -24,27 +24,19 @@ code is coming soon
 
 **In Simple Calendar Pro, create a calendar event on 2023-10-29 at 13h with the title 'Call with the Team' and the description 'We will understand upcoming project milestones.'. The event should last for one hour.**
 
-<video width="320" height="240" controls>
-    <source src="https://github.com/Iron-Boyy/Android_world_dmcv/blob/main/asserts/github_rili.mov" type="video/mp4">
-</video>
+[Bilibili link](https://www.bilibili.com/video/BV1TSs8eEEPa/?spm_id_from=333.999.0.0&vd_source=710d47adc90073a5a5231b9dfe12ce3d)
 
 **How many attendees were present in the meeting titled 'Employee Performance Evaluation' in the Joplin app? Express your answer as just a single number.**
 
-<video width="320" height="240" controls>
-    <source src="https://github.com/Iron-Boyy/Android_world_dmcv/blob/main/asserts/github_jiansuo.mov" type="video/mp4">
-</video>
+[Bilibili link](https://www.bilibili.com/video/BV1Tms8eSEUD/?spm_id_from=333.999.0.0&vd_source=710d47adc90073a5a5231b9dfe12ce3d)
 
 **Send a text message using Simple SMS Messenger to +16597910719 with message: Beauty is in the eye of the beholder.**
 
-<video width="320" height="240" controls>
-    <source src="https://github.com/Iron-Boyy/Android_world_dmcv/blob/main/asserts/github_message.mov" type="video/mp4">
-</video>
+[Bilibili link](https://www.bilibili.com/video/BV14Ss8eEEhk/?spm_id_from=333.999.0.0&vd_source=710d47adc90073a5a5231b9dfe12ce3d)
 
 **Turn wifi off.**
 
-<video width="320" height="240" controls>
-    <source src="https://github.com/Iron-Boyy/Android_world_dmcv/blob/main/asserts/github_wifi.mov" type="video/mp4">
-</video>
+[Bilibili link](https://www.bilibili.com/video/BV1KSs8eEEsf/?spm_id_from=333.999.0.0&vd_source=710d47adc90073a5a5231b9dfe12ce3d)
 
 
 
